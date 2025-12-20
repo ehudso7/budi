@@ -45,6 +45,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bytes = "1.7"
 tempfile = "3.13"
 uuid = { version = "1.11", features = ["v4"] }
+url = "2.5"
 
 # LAME MP3 encoder bindings
 mp3lame-encoder = "0.1"
