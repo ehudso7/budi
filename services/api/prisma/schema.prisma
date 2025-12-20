@@ -1,0 +1,336 @@
+// Budi Database Schema
+// Audio mastering and QC platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User accounts for API authentication
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  apiKey    String   @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projects  Project[]
+}
+
+// Project container (single track or album)
+model Project {
+  id          String       @id
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  type        ProjectType  @default(SINGLE)
+  status      ProjectStatus @default(CREATED)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tracks      Track[]
+  exports     Export[]
+
+  @@index([userId])
+}
+
+enum ProjectType {
+  SINGLE
+  ALBUM
+}
+
+enum ProjectStatus {
+  CREATED
+  ANALYZING
+  ANALYZED
+  MASTERING
+  MASTERED
+  EXPORTING
+  EXPORTED
+  FAILED
+}
+
+// Individual audio track
+model Track {
+  id              String          @id
+  projectId       String
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name            String
+  originalUrl     String          // MinIO URL of original upload
+  fixedUrl        String?         // MinIO URL after fix processing
+  status          TrackStatus     @default(UPLOADED)
+  orderIndex      Int             @default(0)  // For album track ordering
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  analysisReport  AnalysisReport?
+  masters         Master[]
+  codecPreviews   CodecPreview[]
+  jobs            Job[]
+  exportJobs      ExportJob[]     // Release-Ready exports
+
+  @@index([projectId])
+}
+
+enum TrackStatus {
+  UPLOADED
+  ANALYZING
+  ANALYZED
+  FIXING
+  FIXED
+  MASTERING
+  MASTERED
+  FAILED
+}
+
+// Analysis report for a track
+model AnalysisReport {
+  id                String   @id @default(cuid())
+  trackId           String   @unique
+  track             Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  // Loudness metrics (ITU-R BS.1770)
+  integratedLufs    Float    // Integrated loudness in LUFS
+  loudnessRange     Float    // LRA in LU
+  shortTermMax      Float    // Maximum short-term loudness
+  momentaryMax      Float    // Maximum momentary loudness
+
+  // Peak metrics
+  samplePeak        Float    // Sample peak in dBFS
+  truePeak          Float    // True peak in dBTP (oversampled)
+
+  // Spectral metrics
+  spectralCentroid  Float?   // Average spectral centroid in Hz
+  spectralRolloff   Float?   // Frequency below which 85% of energy exists
+
+  // Stereo metrics
+  stereoCorrelation Float?   // -1 to 1, correlation coefficient
+  stereoWidth       Float?   // 0 to 1, stereo width estimate
+
+  // Issues detected
+  hasClipping       Boolean  @default(false)
+  hasDcOffset       Boolean  @default(false)
+  dcOffsetValue     Float?   // DC offset in sample units
+  clippedSamples    Int      @default(0)
+
+  // Additional metadata
+  sampleRate        Int
+  bitDepth          Int
+  channels          Int
+  durationSecs      Float
+
+  // Full report JSON URL in MinIO
+  reportUrl         String?
+
+  createdAt         DateTime @default(now())
+}
+
+// Mastered output for a track
+model Master {
+  id              String        @id @default(cuid())
+  trackId         String
+  track           Track         @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  // Mastering profile used
+  profile         MasterProfile
+  loudnessTarget  LoudnessTarget
+
+  // Output files in MinIO
+  wavHdUrl        String?       // 24-bit WAV
+  wav16Url        String?       // 16-bit WAV
+  mp3PreviewUrl   String?       // 320kbps MP3
+
+  // QC metrics of mastered output
+  finalLufs       Float?
+  finalTruePeak   Float?
+  passesQc        Boolean       @default(false)  // True peak <= -2.0 dBTP
+
+  createdAt       DateTime      @default(now())
+  qcReport        QcReport?
+
+  @@index([trackId])
+}
+
+enum MasterProfile {
+  BALANCED
+  WARM
+  PUNCHY
+  CUSTOM
+}
+
+enum LoudnessTarget {
+  LOW      // -14 LUFS (streaming optimized)
+  MEDIUM   // -11 LUFS
+  HIGH     // -8 LUFS (club/radio)
+}
+
+// QC report for mastered output
+model QcReport {
+  id              String   @id @default(cuid())
+  masterId        String   @unique
+  master          Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  // QC gate results
+  truePeakPasses  Boolean  // <= -2.0 dBTP
+  truePeakValue   Float
+  loudnessPasses  Boolean  // Within 1 LU of target
+  loudnessValue   Float
+
+  // Spectral balance check
+  lowFreqBalance  Float?   // Energy ratio in low frequencies
+  midFreqBalance  Float?   // Energy ratio in mid frequencies
+  highFreqBalance Float?   // Energy ratio in high frequencies
+  tonalWarnings   String[] // Array of tonal warnings
+
+  // Overall pass/fail
+  overallPass     Boolean  @default(false)
+  failureReasons  String[]
+
+  // Full report JSON URL
+  reportUrl       String?
+
+  createdAt       DateTime @default(now())
+}
+
+// Codec preview results
+model CodecPreview {
+  id              String   @id @default(cuid())
+  trackId         String
+  track           Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  codec           String   // e.g., "aac-128", "mp3-128", "opus-96"
+  previewUrl      String   // MinIO URL of encoded preview
+
+  // Quality metrics
+  truePeakAfter   Float?   // True peak after encode/decode
+  artifactScore   Float?   // 0-100, lower is better
+  clippingRisk    Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+
+  @@index([trackId])
+}
+
+// Job tracking
+model Job {
+  id          String    @id
+  trackId     String?
+  track       Track?    @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  projectId   String?   // For album-master jobs
+
+  type        JobType
+  status      JobStatus @default(PENDING)
+  payload     Json      // Full job payload
+
+  // Progress tracking
+  progress    Int       @default(0)  // 0-100
+  message     String?   // Current status message
+
+  // Results
+  resultUrl   String?   // URL to result file/report
+  error       String?   // Error message if failed
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([trackId])
+  @@index([projectId])
+  @@index([status])
+}
+
+enum JobType {
+  ANALYZE
+  FIX
+  MASTER
+  CODEC_PREVIEW
+  ALBUM_MASTER
+  EXPORT
+}
+
+enum JobStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// Export/delivery pack
+model Export {
+  id          String       @id @default(cuid())
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Export configuration
+  formats     String[]     // ["wav-24", "wav-16", "mp3-320"]
+  includeQc   Boolean      @default(true)
+
+  // Output
+  packUrl     String?      // ZIP file URL in MinIO
+  status      ExportStatus @default(PENDING)
+
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+
+  @@index([projectId])
+}
+
+enum ExportStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  COMPLETED
+  FAILED
+}
+
+enum AudioBitDepth {
+  BD_16      // 16-bit with dithering
+  BD_24      // 24-bit (default, distribution safe)
+  BD_32F     // 32-bit float (studio/archival)
+}
+
+// Individual track export job (Release-Ready Export)
+model ExportJob {
+  id                  String         @id @default(cuid())
+  trackId             String
+  track               Track          @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  status              ExportStatus   @default(QUEUED)
+
+  // Requested settings
+  bitDepth            AudioBitDepth  @default(BD_24)
+  sampleRate          Int            @default(44100)
+  truePeakCeilingDb   Float          @default(-2.0)  // dBTP ceiling for Release-Ready gate
+  includeMp3          Boolean        @default(true)
+  includeAac          Boolean        @default(true)
+
+  // Input verification
+  inputSha256         String?
+
+  // Output URLs (stored in MinIO/S3)
+  outputWavUrl        String?
+  outputMp3Url        String?
+  outputAacUrl        String?
+  qcJsonUrl           String?
+
+  // Final metrics after Release-Ready processing
+  finalGainDb         Float?         // Gain applied to meet ceiling
+  finalTruePeakDbfs   Float?
+  finalIntegratedLufs Float?
+  finalLra            Float?
+  releaseReadyPasses  Boolean?       // True if met ceiling requirement
+  attempts            Int            @default(0)    // Number of render attempts
+
+  // Error handling
+  errorMessage        String?
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  completedAt         DateTime?
+
+  @@index([trackId, createdAt])
+  @@index([status, createdAt])
+}

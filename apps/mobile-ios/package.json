@@ -1,11 +1,14 @@
 {
   "name": "@budi/mobile-ios",
+  "version": "1.0.0",
   "private": true,
+  "description": "Budi iOS App - AI Audio Mastering",
   "scripts": {
-    "dev": "node -e \"console.log('iOS app scaffold in Step 4')\"",
-    "build": "node -e \"console.log('iOS build later')\"",
-    "typecheck": "node -e \"console.log('n/a')\"",
-    "lint": "node -e \"console.log('n/a')\"",
-    "test": "node -e \"console.log('n/a')\""
+    "dev": "open Budi.xcodeproj || echo 'Open Budi.xcodeproj in Xcode'",
+    "build": "xcodebuild -project Budi.xcodeproj -scheme Budi -configuration Release -destination 'generic/platform=iOS' build",
+    "build:simulator": "xcodebuild -project Budi.xcodeproj -scheme Budi -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 15' build",
+    "test": "xcodebuild test -project Budi.xcodeproj -scheme Budi -destination 'platform=iOS Simulator,name=iPhone 15'",
+    "typecheck": "echo 'Swift compilation handles type checking'",
+    "lint": "swiftlint lint Budi || echo 'Install swiftlint: brew install swiftlint'"
   }
 }

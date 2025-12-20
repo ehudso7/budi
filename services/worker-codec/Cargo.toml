@@ -1,11 +1,46 @@
 [package]
 name = "worker_codec"
-version = "0.0.1"
+version = "1.0.0"
 edition = "2021"
+description = "Budi Codec Preview Worker - Audio codec quality testing"
 
 [dependencies]
-redis = "0.23"
-tokio = { version = "1.37", features = ["full"] }
+# Async runtime
+tokio = { version = "1.37", features = ["full", "process"] }
+
+# Redis for job queue
+redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
+
+# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+# AWS S3/MinIO
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.54"
+aws-credential-types = "1.2"
+
+# Audio analysis
+symphonia = { version = "0.5", features = ["all"] }
+hound = "3.5"
+ebur128 = "0.2"
+rubato = "0.15"
+
+# HTTP client for webhooks
+reqwest = { version = "0.12", features = ["json"] }
+
+# Error handling
 anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities
+tempfile = "3.13"
+bytes = "1.7"
+
+[profile.release]
+opt-level = 3
+lto = true

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Budi</string>
+    <string name="app_description">AI Audio Mastering</string>
+
+    <!-- Navigation -->
+    <string name="nav_projects">Projects</string>
+    <string name="nav_processing">Processing</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Auth -->
+    <string name="auth_email_label">Email</string>
+    <string name="auth_get_started">Get Started</string>
+    <string name="auth_sign_out">Sign Out</string>
+
+    <!-- Projects -->
+    <string name="projects_title">Projects</string>
+    <string name="projects_empty">No Projects Yet</string>
+    <string name="projects_create">Create Project</string>
+    <string name="project_new">New Project</string>
+    <string name="project_name_label">Project Name</string>
+    <string name="project_type_single">Single Track</string>
+    <string name="project_type_album">Album</string>
+
+    <!-- Tracks -->
+    <string name="tracks_empty">No tracks yet</string>
+    <string name="tracks_upload_hint">Upload audio files to get started</string>
+    <string name="track_analyze">Analyze</string>
+    <string name="track_master">Master</string>
+    <string name="track_delete">Delete</string>
+
+    <!-- Analysis -->
+    <string name="analysis_title">Analysis</string>
+    <string name="analysis_not_analyzed">Track not yet analyzed</string>
+    <string name="analysis_in_progress">Analyzing…</string>
+    <string name="metric_loudness">Loudness</string>
+    <string name="metric_true_peak">True Peak</string>
+    <string name="metric_lra">LRA</string>
+    <string name="metric_clipping">Clipping</string>
+
+    <!-- Mastering -->
+    <string name="master_title">Master Track</string>
+    <string name="master_profile">Profile</string>
+    <string name="master_profile_gentle">Gentle</string>
+    <string name="master_profile_balanced">Balanced</string>
+    <string name="master_profile_aggressive">Aggressive</string>
+    <string name="master_loudness_target">Loudness Target</string>
+    <string name="master_target_streaming">Streaming (-14 LUFS)</string>
+    <string name="master_target_cd">CD (-11 LUFS)</string>
+    <string name="master_target_club">Club (-8 LUFS)</string>
+
+    <!-- Processing -->
+    <string name="processing_title">Processing</string>
+    <string name="processing_empty">No Jobs</string>
+    <string name="processing_empty_hint">Processing jobs will appear here</string>
+    <string name="filter_all">All</string>
+    <string name="filter_active">Active</string>
+    <string name="filter_completed">Completed</string>
+    <string name="filter_failed">Failed</string>
+
+    <!-- Job types -->
+    <string name="job_analyze">Audio Analysis</string>
+    <string name="job_fix">Fix Issues</string>
+    <string name="job_master">Mastering</string>
+    <string name="job_codec_preview">Codec Preview</string>
+    <string name="job_album_master">Album Master</string>
+    <string name="job_export">Export</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_audio">Audio Defaults</string>
+    <string name="settings_codec">Codec Preview</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_build">Build</string>
+
+    <!-- Common -->
+    <string name="create">Create</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="refresh">Refresh</string>
+    <string name="back">Back</string>
+    <string name="more_options">More options</string>
+</resources>
