@@ -46,12 +46,13 @@ fn apply_eq(buffer: &mut AudioBuffer, profile: MasterProfile) -> Result<()> {
     let sample_rate = buffer.sample_rate as f32;
 
     // Define EQ parameters based on profile
-    let (low_gain, mid_gain, high_gain, low_freq, high_freq) = match profile {
-        MasterProfile::Balanced => (0.0, 0.0, 0.5, 80.0, 12000.0),
-        MasterProfile::Warm => (1.5, -0.5, -1.0, 100.0, 8000.0),
-        MasterProfile::Punchy => (2.0, 1.0, 1.5, 60.0, 10000.0),
-        MasterProfile::Custom => (0.0, 0.0, 0.0, 80.0, 12000.0),
-    };
+    let (low_gain, mid_gain, high_gain, low_freq, high_freq): (f32, f32, f32, f32, f32) =
+        match profile {
+            MasterProfile::Balanced => (0.0, 0.0, 0.5, 80.0, 12000.0),
+            MasterProfile::Warm => (1.5, -0.5, -1.0, 100.0, 8000.0),
+            MasterProfile::Punchy => (2.0, 1.0, 1.5, 60.0, 10000.0),
+            MasterProfile::Custom => (0.0, 0.0, 0.0, 80.0, 12000.0),
+        };
 
     if low_gain == 0.0 && mid_gain == 0.0 && high_gain == 0.0 {
         return Ok(());

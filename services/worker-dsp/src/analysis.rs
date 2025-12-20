@@ -132,7 +132,7 @@ fn calculate_true_peak(buffer: &AudioBuffer) -> Result<f64> {
 
         if actual_len < chunk_size {
             // Pad the last chunk
-            let mut padded: Vec<Vec<f32>> = buffer
+            let padded: Vec<Vec<f32>> = buffer
                 .samples
                 .iter()
                 .map(|ch| {

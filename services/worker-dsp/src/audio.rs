@@ -165,25 +165,28 @@ pub fn write_wav_file(buffer: &AudioBuffer, path: &Path, bit_depth: u16) -> Resu
 }
 
 /// Write audio buffer to MP3 file
-pub fn write_mp3_file(buffer: &AudioBuffer, path: &Path, bitrate: u32) -> Result<()> {
+pub fn write_mp3_file(buffer: &AudioBuffer, path: &Path, _bitrate: u32) -> Result<()> {
     use mp3lame_encoder::{Builder, FlushNoGap, InterleavedPcm};
     use std::io::Write;
 
-    let mut mp3_encoder = Builder::new().context("Failed to create MP3 encoder")?;
+    let mut mp3_encoder =
+        Builder::new().ok_or_else(|| anyhow::anyhow!("Failed to create MP3 encoder"))?;
     mp3_encoder
         .set_num_channels(buffer.channels as u8)
-        .context("Failed to set channels")?;
+        .map_err(|e| anyhow::anyhow!("Failed to set channels: {:?}", e))?;
     mp3_encoder
         .set_sample_rate(buffer.sample_rate)
-        .context("Failed to set sample rate")?;
+        .map_err(|e| anyhow::anyhow!("Failed to set sample rate: {:?}", e))?;
     mp3_encoder
         .set_brate(mp3lame_encoder::Bitrate::Kbps320)
-        .context("Failed to set bitrate")?;
+        .map_err(|e| anyhow::anyhow!("Failed to set bitrate: {:?}", e))?;
     mp3_encoder
         .set_quality(mp3lame_encoder::Quality::Best)
-        .context("Failed to set quality")?;
+        .map_err(|e| anyhow::anyhow!("Failed to set quality: {:?}", e))?;
 
-    let mut encoder = mp3_encoder.build().context("Failed to build MP3 encoder")?;
+    let mut encoder = mp3_encoder
+        .build()
+        .map_err(|e| anyhow::anyhow!("Failed to build MP3 encoder: {:?}", e))?;
 
     // Interleave samples
     let frame_count = buffer.frame_count();
@@ -197,23 +200,31 @@ pub fn write_mp3_file(buffer: &AudioBuffer, path: &Path, bitrate: u32) -> Result
     }
 
     let input = InterleavedPcm(&interleaved);
-    let mut mp3_out = Vec::with_capacity(frame_count);
-    mp3_out.resize(frame_count * 2, 0u8);
+
+    // Allocate output buffer with MaybeUninit
+    let buffer_size = frame_count * 2;
+    let mut mp3_out: Vec<std::mem::MaybeUninit<u8>> = Vec::with_capacity(buffer_size);
+    mp3_out.resize(buffer_size, std::mem::MaybeUninit::uninit());
 
     let encoded_size = encoder
         .encode(input, &mut mp3_out)
-        .context("Failed to encode MP3")?;
+        .map_err(|e| anyhow::anyhow!("Failed to encode MP3: {:?}", e))?;
 
     // Flush encoder
     let flush_size = encoder
         .flush::<FlushNoGap>(&mut mp3_out[encoded_size..])
-        .context("Failed to flush MP3 encoder")?;
+        .map_err(|e| anyhow::anyhow!("Failed to flush MP3 encoder: {:?}", e))?;
 
-    mp3_out.truncate(encoded_size + flush_size);
+    // Convert MaybeUninit to initialized u8
+    let total_size = encoded_size + flush_size;
+    let mp3_data: Vec<u8> = mp3_out[..total_size]
+        .iter()
+        .map(|b| unsafe { b.assume_init() })
+        .collect();
 
     // Write to file
     let mut file = File::create(path).context("Failed to create MP3 file")?;
-    file.write_all(&mp3_out)?;
+    file.write_all(&mp3_data)?;
 
     Ok(())
 }

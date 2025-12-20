@@ -130,7 +130,7 @@ fn apply_de_ess(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> {
     // This is a simplified implementation using a dynamic attenuator
 
     let sibilant_low = 4000.0;
-    let sibilant_high = 10000.0;
+    let _sibilant_high = 10000.0; // Reserved for future multi-band de-esser
     let threshold = 0.3; // Threshold for detection
     let ratio = 0.5; // Reduction ratio
 
