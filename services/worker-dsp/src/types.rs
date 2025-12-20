@@ -188,4 +188,5 @@ impl From<&str> for LoudnessTarget {
 
 /// QC thresholds
 pub const QC_TRUE_PEAK_MAX: f64 = -2.0; // dBTP
+#[allow(dead_code)]
 pub const QC_LOUDNESS_TOLERANCE: f64 = 1.0; // LU

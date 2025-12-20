@@ -3,7 +3,6 @@
 use anyhow::{Context, Result};
 use hound::{SampleFormat, WavSpec, WavWriter};
 use std::fs::File;
-use std::io::BufReader;
 use std::path::Path;
 use symphonia::core::audio::{AudioBufferRef, Signal};
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
@@ -119,11 +118,7 @@ pub fn write_wav_file(buffer: &AudioBuffer, path: &Path, bit_depth: u16) -> Resu
         channels: buffer.channels as u16,
         sample_rate: buffer.sample_rate,
         bits_per_sample: bit_depth,
-        sample_format: if bit_depth <= 16 {
-            SampleFormat::Int
-        } else {
-            SampleFormat::Int
-        },
+        sample_format: SampleFormat::Int,
     };
 
     let mut writer = WavWriter::create(path, spec).context("Failed to create WAV file")?;
@@ -230,6 +225,7 @@ pub fn write_mp3_file(buffer: &AudioBuffer, path: &Path, _bitrate: u32) -> Resul
 }
 
 /// Read WAV file using hound (for simpler cases)
+#[allow(dead_code)]
 pub fn read_wav_file(path: &Path) -> Result<AudioBuffer> {
     let reader = hound::WavReader::open(path).context("Failed to open WAV file")?;
     let spec = reader.spec();
