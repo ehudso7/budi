@@ -62,7 +62,11 @@ async fn main() -> Result<()> {
             match serde_json::from_str::<Job>(&payload) {
                 Ok(job) => {
                     let job_id = job.job_id().to_string();
-                    info!("Processing job: {} (type: {:?})", job_id, std::mem::discriminant(&job));
+                    info!(
+                        "Processing job: {} (type: {:?})",
+                        job_id,
+                        std::mem::discriminant(&job)
+                    );
 
                     if let Err(e) = process_job(&job, &s3, &webhook).await {
                         error!("Job {} failed: {:?}", job_id, e);
@@ -73,7 +77,10 @@ async fn main() -> Result<()> {
                             Job::AlbumMaster { .. } => "album-master",
                             Job::Export { .. } => "export",
                         };
-                        if let Err(we) = webhook.report_failure(&job_id, job_type, &e.to_string()).await {
+                        if let Err(we) = webhook
+                            .report_failure(&job_id, job_type, &e.to_string())
+                            .await
+                        {
                             error!("Failed to report job failure: {:?}", we);
                         }
                     }
@@ -94,17 +101,13 @@ async fn process_job(job: &Job, s3: &S3Client, webhook: &WebhookClient) -> Resul
             job_id,
             track_id,
             source_url,
-        } => {
-            process_analyze_job(job_id, track_id, source_url, s3, webhook).await
-        }
+        } => process_analyze_job(job_id, track_id, source_url, s3, webhook).await,
         Job::Fix {
             job_id,
             track_id,
             source_url,
             modules,
-        } => {
-            process_fix_job(job_id, track_id, source_url, modules, s3, webhook).await
-        }
+        } => process_fix_job(job_id, track_id, source_url, modules, s3, webhook).await,
         Job::Master {
             job_id,
             track_id,
@@ -145,7 +148,9 @@ async fn process_analyze_job(
     webhook: &WebhookClient,
 ) -> Result<()> {
     info!("Analyzing track {}", track_id);
-    webhook.report_progress(job_id, 10, "Downloading audio file...").await?;
+    webhook
+        .report_progress(job_id, 10, "Downloading audio file...")
+        .await?;
 
     // Create temp directory for processing
     let temp_dir = TempDir::new()?;
@@ -153,26 +158,38 @@ async fn process_analyze_job(
 
     // Download the source file
     s3.download_file(source_url, &input_path).await?;
-    webhook.report_progress(job_id, 30, "Decoding audio...").await?;
+    webhook
+        .report_progress(job_id, 30, "Decoding audio...")
+        .await?;
 
     // Read and decode the audio file
     let buffer = audio::read_audio_file(&input_path)?;
-    webhook.report_progress(job_id, 50, "Analyzing loudness and peaks...").await?;
+    webhook
+        .report_progress(job_id, 50, "Analyzing loudness and peaks...")
+        .await?;
 
     // Analyze the audio
     let bit_depth = 24; // Assume 24-bit for analysis
     let result = analysis::analyze_audio(&buffer, bit_depth)?;
-    webhook.report_progress(job_id, 80, "Generating report...").await?;
+    webhook
+        .report_progress(job_id, 80, "Generating report...")
+        .await?;
 
     // Generate JSON report
     let report_json = serde_json::to_string_pretty(&result)?;
     let report_key = S3Client::generate_key("reports", track_id, "analysis.json");
-    let report_url = s3.upload_bytes(report_json.as_bytes(), &report_key, "application/json").await?;
+    let report_url = s3
+        .upload_bytes(report_json.as_bytes(), &report_key, "application/json")
+        .await?;
 
-    webhook.report_progress(job_id, 100, "Analysis complete").await?;
+    webhook
+        .report_progress(job_id, 100, "Analysis complete")
+        .await?;
 
     // Report results to API
-    webhook.report_analysis(job_id, &result, Some(&report_url)).await?;
+    webhook
+        .report_analysis(job_id, &result, Some(&report_url))
+        .await?;
 
     info!(
         "Analysis complete for {}: {:.1} LUFS, {:.1} dBTP",
@@ -192,7 +209,9 @@ async fn process_fix_job(
     webhook: &WebhookClient,
 ) -> Result<()> {
     info!("Fixing track {} with modules: {:?}", track_id, modules);
-    webhook.report_progress(job_id, 10, "Downloading audio file...").await?;
+    webhook
+        .report_progress(job_id, 10, "Downloading audio file...")
+        .await?;
 
     let temp_dir = TempDir::new()?;
     let input_path = temp_dir.path().join("input.wav");
@@ -200,28 +219,38 @@ async fn process_fix_job(
 
     // Download the source file
     s3.download_file(source_url, &input_path).await?;
-    webhook.report_progress(job_id, 30, "Applying fixes...").await?;
+    webhook
+        .report_progress(job_id, 30, "Applying fixes...")
+        .await?;
 
     // Read audio
     let mut buffer = audio::read_audio_file(&input_path)?;
 
     // Apply fixes
     let changes = fix::apply_fixes(&mut buffer, modules)?;
-    webhook.report_progress(job_id, 70, "Encoding output...").await?;
+    webhook
+        .report_progress(job_id, 70, "Encoding output...")
+        .await?;
 
     // Write fixed audio
     audio::write_wav_file(&buffer, &output_path, 24)?;
 
     // Upload fixed file
     let output_key = S3Client::generate_key("fixed", track_id, "fixed.wav");
-    let fixed_url = s3.upload_file(&output_path, &output_key, "audio/wav").await?;
+    let fixed_url = s3
+        .upload_file(&output_path, &output_key, "audio/wav")
+        .await?;
 
     webhook.report_progress(job_id, 100, "Fix complete").await?;
 
     // Report results
     webhook.report_fix(job_id, &fixed_url, &changes).await?;
 
-    info!("Fix complete for {}: {} changes applied", track_id, changes.len());
+    info!(
+        "Fix complete for {}: {} changes applied",
+        track_id,
+        changes.len()
+    );
 
     Ok(())
 }
@@ -240,7 +269,9 @@ async fn process_master_job(
         "Mastering track {} with profile {} and target {}",
         track_id, profile, loudness_target
     );
-    webhook.report_progress(job_id, 5, "Downloading audio file...").await?;
+    webhook
+        .report_progress(job_id, 5, "Downloading audio file...")
+        .await?;
 
     let temp_dir = TempDir::new()?;
     let input_path = temp_dir.path().join("input.wav");
@@ -250,43 +281,65 @@ async fn process_master_job(
 
     // Download the source file
     s3.download_file(source_url, &input_path).await?;
-    webhook.report_progress(job_id, 15, "Decoding audio...").await?;
+    webhook
+        .report_progress(job_id, 15, "Decoding audio...")
+        .await?;
 
     // Read audio
     let mut buffer = audio::read_audio_file(&input_path)?;
-    webhook.report_progress(job_id, 25, "Applying EQ...").await?;
+    webhook
+        .report_progress(job_id, 25, "Applying EQ...")
+        .await?;
 
     // Apply mastering chain
     let master_profile = MasterProfile::from(profile);
     let target = LoudnessTarget::from(loudness_target);
 
-    webhook.report_progress(job_id, 40, "Applying compression...").await?;
-    webhook.report_progress(job_id, 55, "Applying limiter...").await?;
+    webhook
+        .report_progress(job_id, 40, "Applying compression...")
+        .await?;
+    webhook
+        .report_progress(job_id, 55, "Applying limiter...")
+        .await?;
 
     let result = mastering::apply_mastering(&mut buffer, master_profile, target)?;
-    webhook.report_progress(job_id, 70, "Encoding outputs...").await?;
+    webhook
+        .report_progress(job_id, 70, "Encoding outputs...")
+        .await?;
 
     // Write 24-bit WAV
     audio::write_wav_file(&buffer, &output_hd_path, 24)?;
-    webhook.report_progress(job_id, 80, "Encoding 16-bit WAV...").await?;
+    webhook
+        .report_progress(job_id, 80, "Encoding 16-bit WAV...")
+        .await?;
 
     // Write 16-bit WAV
     audio::write_wav_file(&buffer, &output_16_path, 16)?;
-    webhook.report_progress(job_id, 85, "Encoding MP3...").await?;
+    webhook
+        .report_progress(job_id, 85, "Encoding MP3...")
+        .await?;
 
     // Write MP3
     audio::write_mp3_file(&buffer, &output_mp3_path, 320)?;
-    webhook.report_progress(job_id, 90, "Uploading files...").await?;
+    webhook
+        .report_progress(job_id, 90, "Uploading files...")
+        .await?;
 
     // Upload all files
     let hd_key = S3Client::generate_key("masters", track_id, "master_24bit.wav");
-    let wav_hd_url = s3.upload_file(&output_hd_path, &hd_key, "audio/wav").await?;
+    let wav_hd_url = s3
+        .upload_file(&output_hd_path, &hd_key, "audio/wav")
+        .await?;
 
     let key_16 = S3Client::generate_key("masters", track_id, "master_16bit.wav");
-    let wav_16_url = s3.upload_file(&output_16_path, &key_16, "audio/wav").await?;
+    let wav_16_url = s3
+        .upload_file(&output_16_path, &key_16, "audio/wav")
+        .await?;
 
     let mp3_key = S3Client::generate_key("masters", track_id, "master.mp3");
-    let mp3_url = s3.upload_file(&output_mp3_path, &mp3_key, "audio/mpeg").await?;
+    let mp3_url = s3
+        .upload_file(&output_mp3_path, &mp3_key, "audio/mpeg")
+        .await?;
 
     // Generate QC report
     let qc_report = serde_json::json!({
@@ -303,13 +356,17 @@ async fn process_master_job(
         }
     });
     let qc_key = S3Client::generate_key("reports", track_id, "qc.json");
-    let qc_url = s3.upload_bytes(
-        serde_json::to_string_pretty(&qc_report)?.as_bytes(),
-        &qc_key,
-        "application/json"
-    ).await?;
+    let qc_url = s3
+        .upload_bytes(
+            serde_json::to_string_pretty(&qc_report)?.as_bytes(),
+            &qc_key,
+            "application/json",
+        )
+        .await?;
 
-    webhook.report_progress(job_id, 100, "Mastering complete").await?;
+    webhook
+        .report_progress(job_id, 100, "Mastering complete")
+        .await?;
 
     // Report results
     webhook
@@ -327,7 +384,9 @@ async fn process_master_job(
 
     info!(
         "Mastering complete for {}: {:.1} LUFS, {:.1} dBTP, QC: {}",
-        track_id, result.final_lufs, result.final_true_peak,
+        track_id,
+        result.final_lufs,
+        result.final_true_peak,
         if result.passes_qc { "PASS" } else { "FAIL" }
     );
 

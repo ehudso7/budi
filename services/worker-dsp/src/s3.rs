@@ -20,22 +20,15 @@ pub struct S3Client {
 impl S3Client {
     /// Create a new S3 client from environment variables
     pub async fn from_env() -> Result<Self> {
-        let endpoint = std::env::var("MINIO_ENDPOINT")
-            .unwrap_or_else(|_| "http://localhost:9000".to_string());
-        let access_key = std::env::var("MINIO_ACCESS_KEY")
-            .unwrap_or_else(|_| "minioadmin".to_string());
-        let secret_key = std::env::var("MINIO_SECRET_KEY")
-            .unwrap_or_else(|_| "minioadmin".to_string());
-        let bucket = std::env::var("MINIO_BUCKET_AUDIO")
-            .unwrap_or_else(|_| "audio".to_string());
+        let endpoint =
+            std::env::var("MINIO_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
+        let access_key =
+            std::env::var("MINIO_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".to_string());
+        let secret_key =
+            std::env::var("MINIO_SECRET_KEY").unwrap_or_else(|_| "minioadmin".to_string());
+        let bucket = std::env::var("MINIO_BUCKET_AUDIO").unwrap_or_else(|_| "audio".to_string());
 
-        let credentials = Credentials::new(
-            access_key,
-            secret_key,
-            None,
-            None,
-            "environment",
-        );
+        let credentials = Credentials::new(access_key, secret_key, None, None, "environment");
 
         let config = aws_sdk_s3::Config::builder()
             .endpoint_url(&endpoint)
@@ -54,7 +47,12 @@ impl S3Client {
         // Parse the URL to get bucket and key
         let (bucket, key) = parse_s3_url(url)?;
 
-        tracing::info!("Downloading from s3://{}/{} to {:?}", bucket, key, local_path);
+        tracing::info!(
+            "Downloading from s3://{}/{} to {:?}",
+            bucket,
+            key,
+            local_path
+        );
 
         let response = self
             .client
@@ -106,19 +104,19 @@ impl S3Client {
             .context("Failed to upload to S3")?;
 
         // Return the full URL
-        let endpoint = std::env::var("MINIO_ENDPOINT")
-            .unwrap_or_else(|_| "http://localhost:9000".to_string());
+        let endpoint =
+            std::env::var("MINIO_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
         Ok(format!("{}/{}/{}", endpoint, self.bucket, key))
     }
 
     /// Upload bytes directly to S3
-    pub async fn upload_bytes(
-        &self,
-        data: &[u8],
-        key: &str,
-        content_type: &str,
-    ) -> Result<String> {
-        tracing::info!("Uploading {} bytes to s3://{}/{}", data.len(), self.bucket, key);
+    pub async fn upload_bytes(&self, data: &[u8], key: &str, content_type: &str) -> Result<String> {
+        tracing::info!(
+            "Uploading {} bytes to s3://{}/{}",
+            data.len(),
+            self.bucket,
+            key
+        );
 
         let body = ByteStream::from(Bytes::from(data.to_vec()));
 
@@ -132,8 +130,8 @@ impl S3Client {
             .await
             .context("Failed to upload to S3")?;
 
-        let endpoint = std::env::var("MINIO_ENDPOINT")
-            .unwrap_or_else(|_| "http://localhost:9000".to_string());
+        let endpoint =
+            std::env::var("MINIO_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
         Ok(format!("{}/{}/{}", endpoint, self.bucket, key))
     }
 

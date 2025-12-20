@@ -45,7 +45,7 @@ export async function registerAuth(app: FastifyInstance): Promise<void> {
         const payload = request.user as { id: string; email: string; name: string | null };
         request.userId = payload.id;
         request.user = payload;
-      } catch (err) {
+      } catch {
         reply.status(401).send({ error: "Unauthorized", message: "Invalid or missing authentication" });
       }
     }

@@ -109,7 +109,10 @@ async fn main() -> Result<()> {
                     master_url,
                     codecs,
                 }) => {
-                    info!("Processing codec preview job {} for track {}", job_id, track_id);
+                    info!(
+                        "Processing codec preview job {} for track {}",
+                        job_id, track_id
+                    );
 
                     if let Err(e) =
                         process_codec_preview(&job_id, &track_id, &master_url, &codecs).await
@@ -153,14 +156,8 @@ async fn process_codec_preview(
         let progress = 20 + (i * 60 / codec_count.max(1));
         report_progress(job_id, progress as u8, &format!("Processing {}...", codec)).await?;
 
-        let result = process_single_codec(
-            &temp_dir,
-            &input_path,
-            &original,
-            codec,
-            track_id,
-        )
-        .await?;
+        let result =
+            process_single_codec(&temp_dir, &input_path, &original, codec, track_id).await?;
 
         results.push(result);
     }
@@ -172,7 +169,11 @@ async fn process_codec_preview(
 
     report_progress(job_id, 100, "Codec preview complete").await?;
 
-    info!("Codec preview complete for {}: {} codecs tested", track_id, results.len());
+    info!(
+        "Codec preview complete for {}: {} codecs tested",
+        track_id,
+        results.len()
+    );
 
     Ok(())
 }
@@ -307,8 +308,8 @@ fn read_audio_file(path: &Path) -> Result<AudioBuffer> {
 
     let format_opts = FormatOptions::default();
     let metadata_opts = MetadataOptions::default();
-    let probed = symphonia::default::get_probe()
-        .format(&hint, mss, &format_opts, &metadata_opts)?;
+    let probed =
+        symphonia::default::get_probe().format(&hint, mss, &format_opts, &metadata_opts)?;
 
     let mut format = probed.format;
 
@@ -324,8 +325,7 @@ fn read_audio_file(path: &Path) -> Result<AudioBuffer> {
     let channels = codec_params.channels.map(|c| c.count()).unwrap_or(2);
 
     let decoder_opts = DecoderOptions::default();
-    let mut decoder = symphonia::default::get_codecs()
-        .make(&codec_params, &decoder_opts)?;
+    let mut decoder = symphonia::default::get_codecs().make(&codec_params, &decoder_opts)?;
 
     let mut buffer = AudioBuffer {
         samples: vec![Vec::new(); channels],
@@ -408,7 +408,11 @@ fn calculate_true_peak(buffer: &AudioBuffer) -> Result<f64> {
                 })
                 .collect()
         } else {
-            buffer.samples.iter().map(|ch| ch[start..end].to_vec()).collect()
+            buffer
+                .samples
+                .iter()
+                .map(|ch| ch[start..end].to_vec())
+                .collect()
         };
 
         if let Ok(output) = resampler.process(&chunk, None) {
@@ -468,7 +472,8 @@ fn calculate_artifact_score(original: &AudioBuffer, decoded: &AudioBuffer) -> Re
 
 /// Download file from S3/MinIO
 async fn download_file(url: &str, path: &Path) -> Result<()> {
-    let endpoint = env::var("MINIO_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
+    let endpoint =
+        env::var("MINIO_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
     let access_key = env::var("MINIO_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".to_string());
     let secret_key = env::var("MINIO_SECRET_KEY").unwrap_or_else(|_| "minioadmin".to_string());
 
@@ -491,12 +496,7 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
     }
     let (bucket, key) = (parts[0], parts[1]);
 
-    let response = client
-        .get_object()
-        .bucket(bucket)
-        .key(key)
-        .send()
-        .await?;
+    let response = client.get_object().bucket(bucket).key(key).send().await?;
 
     let body = response.body.collect().await?;
     tokio::fs::write(path, body.into_bytes()).await?;
@@ -506,7 +506,8 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
 
 /// Upload file to S3/MinIO
 async fn upload_file(path: &Path, track_id: &str, codec: &str) -> Result<String> {
-    let endpoint = env::var("MINIO_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
+    let endpoint =
+        env::var("MINIO_ENDPOINT").unwrap_or_else(|_| "http://localhost:9000".to_string());
     let access_key = env::var("MINIO_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".to_string());
     let secret_key = env::var("MINIO_SECRET_KEY").unwrap_or_else(|_| "minioadmin".to_string());
     let bucket = env::var("MINIO_BUCKET_AUDIO").unwrap_or_else(|_| "audio".to_string());
@@ -570,7 +571,10 @@ async fn report_codec_results(job_id: &str, results: &[CodecPreviewResult]) -> R
 
     let client = HttpClient::new();
     client
-        .post(format!("{}/webhooks/jobs/{}/codec-preview", api_url, job_id))
+        .post(format!(
+            "{}/webhooks/jobs/{}/codec-preview",
+            api_url, job_id
+        ))
         .header("X-Webhook-Secret", &secret)
         .json(&serde_json::json!({
             "jobId": job_id,
@@ -599,7 +603,10 @@ async fn report_failure(job_id: &str, error: &str) -> Result<()> {
 
     let client = HttpClient::new();
     client
-        .post(format!("{}/webhooks/jobs/{}/codec-preview", api_url, job_id))
+        .post(format!(
+            "{}/webhooks/jobs/{}/codec-preview",
+            api_url, job_id
+        ))
         .header("X-Webhook-Secret", &secret)
         .json(&serde_json::json!({
             "jobId": job_id,

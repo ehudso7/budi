@@ -138,8 +138,6 @@ export async function makeReleaseReady(
     }
 
     // Failed to meet ceiling after max attempts
-    const lastAttempt = attempts.at(-1);
-
     // Still write best-effort output
     const lastCandidate = tmpCandidate(maxAttempts - 1);
     await renderWav({

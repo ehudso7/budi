@@ -16,10 +16,10 @@ pub struct WebhookClient {
 impl WebhookClient {
     /// Create a new webhook client from environment variables
     pub fn from_env() -> Result<Self> {
-        let api_url = std::env::var("API_URL")
-            .unwrap_or_else(|_| "http://localhost:4000".to_string());
-        let secret = std::env::var("WEBHOOK_SECRET")
-            .unwrap_or_else(|_| "budi-webhook-secret".to_string());
+        let api_url =
+            std::env::var("API_URL").unwrap_or_else(|_| "http://localhost:4000".to_string());
+        let secret =
+            std::env::var("WEBHOOK_SECRET").unwrap_or_else(|_| "budi-webhook-secret".to_string());
 
         Ok(Self {
             client: Client::new(),

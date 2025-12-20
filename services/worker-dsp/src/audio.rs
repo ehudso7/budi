@@ -230,14 +230,20 @@ pub fn read_wav_file(path: &Path) -> Result<AudioBuffer> {
 
     match (spec.sample_format, spec.bits_per_sample) {
         (SampleFormat::Int, 16) => {
-            let samples: Vec<i16> = reader.into_samples::<i16>().filter_map(|s| s.ok()).collect();
+            let samples: Vec<i16> = reader
+                .into_samples::<i16>()
+                .filter_map(|s| s.ok())
+                .collect();
             for (i, sample) in samples.iter().enumerate() {
                 let ch = i % channels;
                 buffer.samples[ch].push(*sample as f32 / 32768.0);
             }
         }
         (SampleFormat::Int, 24) | (SampleFormat::Int, 32) => {
-            let samples: Vec<i32> = reader.into_samples::<i32>().filter_map(|s| s.ok()).collect();
+            let samples: Vec<i32> = reader
+                .into_samples::<i32>()
+                .filter_map(|s| s.ok())
+                .collect();
             let max_val = if spec.bits_per_sample == 24 {
                 8388608.0
             } else {
@@ -249,7 +255,10 @@ pub fn read_wav_file(path: &Path) -> Result<AudioBuffer> {
             }
         }
         (SampleFormat::Float, _) => {
-            let samples: Vec<f32> = reader.into_samples::<f32>().filter_map(|s| s.ok()).collect();
+            let samples: Vec<f32> = reader
+                .into_samples::<f32>()
+                .filter_map(|s| s.ok())
+                .collect();
             for (i, sample) in samples.iter().enumerate() {
                 let ch = i % channels;
                 buffer.samples[ch].push(*sample);

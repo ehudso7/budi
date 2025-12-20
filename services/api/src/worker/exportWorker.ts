@@ -23,7 +23,6 @@ import {
   makeReleaseReady,
   renderMp3,
   renderAac,
-  measureEbur128,
   checkFfmpeg,
   type BitDepth,
   type ReleaseReadyResult,

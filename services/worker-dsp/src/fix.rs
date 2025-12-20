@@ -1,7 +1,7 @@
 //! Audio repair and fix operations
 
-use anyhow::Result;
 use crate::types::{AudioBuffer, FixChange};
+use anyhow::Result;
 
 /// Apply a list of fix modules to an audio buffer
 pub fn apply_fixes(buffer: &mut AudioBuffer, modules: &[String]) -> Result<Vec<FixChange>> {
@@ -114,7 +114,10 @@ fn apply_clip_repair(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> {
     if repaired_count > 0 {
         Ok(Some(FixChange {
             module: "clip_repair".to_string(),
-            description: format!("Repaired {} clipped samples using interpolation", repaired_count),
+            description: format!(
+                "Repaired {} clipped samples using interpolation",
+                repaired_count
+            ),
         }))
     } else {
         Ok(None)
@@ -158,7 +161,7 @@ fn apply_de_ess(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> {
 
         for i in 0..len {
             // High-pass filter to isolate sibilance
-            let hp = alpha * (prev_hp + channel[i] - if i > 0 { channel[i-1] } else { 0.0 });
+            let hp = alpha * (prev_hp + channel[i] - if i > 0 { channel[i - 1] } else { 0.0 });
             prev_hp = hp;
 
             // Envelope follower
@@ -186,7 +189,10 @@ fn apply_de_ess(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> {
         let avg_reduction = total_reduction / reduction_count as f64 * 100.0;
         Ok(Some(FixChange {
             module: "de_ess".to_string(),
-            description: format!("Applied de-essing with {:.1}% average reduction on {} samples", avg_reduction, reduction_count),
+            description: format!(
+                "Applied de-essing with {:.1}% average reduction on {} samples",
+                avg_reduction, reduction_count
+            ),
         }))
     } else {
         Ok(None)
@@ -242,7 +248,8 @@ fn apply_noise_reduction(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> 
     }
 
     if gated_samples > 0 {
-        let percentage = gated_samples as f64 / (buffer.frame_count() * buffer.channels) as f64 * 100.0;
+        let percentage =
+            gated_samples as f64 / (buffer.frame_count() * buffer.channels) as f64 * 100.0;
         Ok(Some(FixChange {
             module: "noise_reduction".to_string(),
             description: format!("Applied noise gating to {:.1}% of samples", percentage),
@@ -278,7 +285,11 @@ fn apply_dc_offset_removal(buffer: &mut AudioBuffer) -> Result<Option<FixChange>
         let avg_offset: f32 = offsets.iter().sum::<f32>() / offsets.len() as f32;
         Ok(Some(FixChange {
             module: "dc_offset".to_string(),
-            description: format!("Removed DC offset of {:.6} from {} channel(s)", avg_offset, offsets.len()),
+            description: format!(
+                "Removed DC offset of {:.6} from {} channel(s)",
+                avg_offset,
+                offsets.len()
+            ),
         }))
     } else {
         Ok(None)
@@ -299,7 +310,9 @@ fn apply_silence_trim(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> {
     // Find first non-silent frame
     let mut start_frame = 0;
     for i in 0..frame_count {
-        let max_sample: f32 = buffer.samples.iter()
+        let max_sample: f32 = buffer
+            .samples
+            .iter()
             .map(|ch| ch.get(i).unwrap_or(&0.0).abs())
             .fold(0.0, f32::max);
 
@@ -312,7 +325,9 @@ fn apply_silence_trim(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> {
     // Find last non-silent frame
     let mut end_frame = frame_count;
     for i in (0..frame_count).rev() {
-        let max_sample: f32 = buffer.samples.iter()
+        let max_sample: f32 = buffer
+            .samples
+            .iter()
             .map(|ch| ch.get(i).unwrap_or(&0.0).abs())
             .fold(0.0, f32::max);
 
@@ -336,7 +351,10 @@ fn apply_silence_trim(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> {
 
         Ok(Some(FixChange {
             module: "silence_trim".to_string(),
-            description: format!("Trimmed {:.0}ms from start and {:.0}ms from end", start_ms, end_ms),
+            description: format!(
+                "Trimmed {:.0}ms from start and {:.0}ms from end",
+                start_ms, end_ms
+            ),
         }))
     } else {
         Ok(None)

@@ -131,7 +131,6 @@ export async function downloadFile(
 
   const { createWriteStream } = await import('node:fs');
   const { pipeline } = await import('node:stream/promises');
-  const { Readable } = await import('node:stream');
 
   const command = new GetObjectCommand({
     Bucket: bucket,

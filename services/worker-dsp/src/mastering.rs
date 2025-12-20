@@ -186,9 +186,30 @@ fn apply_multiband_compression(buffer: &mut AudioBuffer, profile: MasterProfile)
         apply_lowpass_lr4(&mut mid_band, sample_rate, mid_high_freq);
 
         // Apply compression to each band
-        apply_compression(&mut low_band, sample_rate, low_threshold, low_ratio, 20.0, 200.0);
-        apply_compression(&mut mid_band, sample_rate, mid_threshold, mid_ratio, 10.0, 100.0);
-        apply_compression(&mut high_band, sample_rate, high_threshold, high_ratio, 5.0, 50.0);
+        apply_compression(
+            &mut low_band,
+            sample_rate,
+            low_threshold,
+            low_ratio,
+            20.0,
+            200.0,
+        );
+        apply_compression(
+            &mut mid_band,
+            sample_rate,
+            mid_threshold,
+            mid_ratio,
+            10.0,
+            100.0,
+        );
+        apply_compression(
+            &mut high_band,
+            sample_rate,
+            high_threshold,
+            high_ratio,
+            5.0,
+            50.0,
+        );
 
         // Sum the bands
         for (i, sample) in channel.iter_mut().enumerate() {
@@ -427,7 +448,11 @@ fn calculate_true_peak(buffer: &AudioBuffer) -> Result<f64> {
                 })
                 .collect()
         } else {
-            buffer.samples.iter().map(|ch| ch[start..end].to_vec()).collect()
+            buffer
+                .samples
+                .iter()
+                .map(|ch| ch[start..end].to_vec())
+                .collect()
         };
 
         if let Ok(output) = resampler.process(&chunk, None) {

@@ -110,6 +110,7 @@ class AudioPlayerController: ObservableObject {
 
     private var player: AVPlayer?
     private var timeObserver: Any?
+    private var endObserver: NSObjectProtocol?
 
     func load(url: URL) {
         do {
@@ -152,7 +153,7 @@ class AudioPlayerController: ObservableObject {
         }
 
         // Observe end of playback
-        NotificationCenter.default.addObserver(
+        endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: playerItem,
             queue: .main
@@ -162,6 +163,15 @@ class AudioPlayerController: ObservableObject {
                 self?.progress = 0
                 self?.currentTime = 0
             }
+        }
+    }
+
+    deinit {
+        if let observer = timeObserver {
+            player?.removeTimeObserver(observer)
+        }
+        if let endObserver = endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
         }
     }
 

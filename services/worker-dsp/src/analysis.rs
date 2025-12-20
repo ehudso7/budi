@@ -232,7 +232,11 @@ fn analyze_spectrum(buffer: &AudioBuffer) -> Result<(Option<f64>, Option<f64>)> 
     // Mix channels to mono for spectral analysis
     let mono: Vec<f32> = (0..buffer.frame_count())
         .map(|i| {
-            let sum: f32 = buffer.samples.iter().map(|ch| ch.get(i).unwrap_or(&0.0)).sum();
+            let sum: f32 = buffer
+                .samples
+                .iter()
+                .map(|ch| ch.get(i).unwrap_or(&0.0))
+                .sum();
             sum / buffer.channels as f32
         })
         .collect();

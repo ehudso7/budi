@@ -23,7 +23,7 @@ aws-credential-types = "1.2"
 # Audio analysis
 symphonia = { version = "0.5", features = ["all"] }
 hound = "3.5"
-ebur128 = "0.2"
+ebur128 = "0.1"
 rubato = "0.15"
 
 # HTTP client for webhooks
@@ -40,6 +40,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Utilities
 tempfile = "3.13"
 bytes = "1.7"
+url = "2.5"
 
 [profile.release]
 opt-level = 3

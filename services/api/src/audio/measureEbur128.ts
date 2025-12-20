@@ -77,9 +77,13 @@ export async function measureEbur128(inputPath: string): Promise<LoudnessMetrics
   //   True peak:
   //     Peak:        -0.3 dBFS
 
-  const integratedLufs = parseNumber('I:', output);
-  const lra = parseNumber('LRA:', output);
-  const truePeakDbfs = parseNumber('Peak:', output);
+  // Extract Summary section to avoid per-frame values (which appear before Summary)
+  const summaryMatch = output.match(/Summary:[\s\S]*/);
+  const summary = summaryMatch ? summaryMatch[0] : output;
+
+  const integratedLufs = parseNumber('I:', summary);
+  const lra = parseNumber('LRA:', summary);
+  const truePeakDbfs = parseNumber('Peak:', summary);
 
   // Parse short-term and momentary max if available
   let shortTermMax = integratedLufs;
