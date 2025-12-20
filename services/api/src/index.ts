@@ -1,6 +1,10 @@
 import Fastify from "fastify";
+import jobsRoutes from "./routes/jobs.js";
 
 const app = Fastify({ logger: true });
+
+// Register application routes
+app.register(jobsRoutes);
 
 app.get("/health", async () => {
   return {

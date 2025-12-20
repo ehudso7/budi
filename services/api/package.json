@@ -10,7 +10,9 @@
     "test": "node -e \"console.log('tests later in Step 2')\""
   },
   "dependencies": {
-    "fastify": "^5.2.1"
+    "fastify": "^5.2.1",
+    "ioredis": "^5.3.1",
+    "@masterforge/contracts": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
