@@ -1,0 +1,11 @@
+{
+  "name": "@masterforge/mobile-android",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.log('Android app scaffold in Step 4')\"",
+    "build": "node -e \"console.log('Android build later')\"",
+    "typecheck": "node -e \"console.log('n/a')\"",
+    "lint": "node -e \"console.log('n/a')\"",
+    "test": "node -e \"console.log('n/a')\""
+  }
+}
