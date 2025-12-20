@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/budi
+
+jobs:
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API
+        run: pnpm turbo run build --filter=api
+
+      # Build and push API image
+      - name: Build and push API
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./services/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ steps.version.outputs.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and push DSP Worker image
+      - name: Build and push DSP Worker
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/worker-dsp
+          file: ./services/worker-dsp/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-worker-dsp:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-worker-dsp:${{ steps.version.outputs.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and push Codec Worker image
+      - name: Build and push Codec Worker
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/worker-codec
+          file: ./services/worker-codec/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-worker-codec:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-worker-codec:${{ steps.version.outputs.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Docker Images
+
+            Pull the latest images:
+            ```bash
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ steps.version.outputs.VERSION }}
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-worker-dsp:${{ steps.version.outputs.VERSION }}
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-worker-codec:${{ steps.version.outputs.VERSION }}
+            ```
+
+            ## Quick Start
+
+            ```bash
+            # Clone the repository
+            git clone https://github.com/${{ github.repository }}.git
+            cd budi
+
+            # Start with Docker Compose
+            docker compose up -d
+            ```
+          draft: false
+          prerelease: false
