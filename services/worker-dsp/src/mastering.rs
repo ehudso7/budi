@@ -379,8 +379,8 @@ fn apply_limiter(buffer: &mut AudioBuffer, target: LoudnessTarget) -> Result<(f6
         }
 
         // Apply to remaining samples
-        for i in (len - lookahead_samples)..len {
-            channel[i] *= gain_reduction;
+        for sample in channel[(len - lookahead_samples)..].iter_mut() {
+            *sample *= gain_reduction;
         }
     }
 

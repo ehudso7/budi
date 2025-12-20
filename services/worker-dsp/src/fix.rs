@@ -213,13 +213,12 @@ fn apply_noise_reduction(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> 
     let mut gated_samples = 0;
 
     for channel in &mut buffer.samples {
-        let len = channel.len();
         let mut envelope = 0.0_f32;
         let mut gate_open = false;
         let mut hold_counter = 0;
 
-        for i in 0..len {
-            let abs_sample = channel[i].abs();
+        for sample in channel.iter_mut() {
+            let abs_sample = sample.abs();
 
             // Envelope follower
             if abs_sample > envelope {
@@ -241,7 +240,7 @@ fn apply_noise_reduction(buffer: &mut AudioBuffer) -> Result<Option<FixChange>> 
             // Apply gentle attenuation when gate is closed
             if !gate_open {
                 let attenuation = 0.1 + 0.9 * (envelope / gate_threshold).min(1.0);
-                channel[i] *= attenuation;
+                *sample *= attenuation;
                 gated_samples += 1;
             }
         }

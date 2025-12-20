@@ -192,6 +192,7 @@ impl WebhookClient {
     }
 
     /// Report master job completion
+    #[allow(clippy::too_many_arguments)]
     pub async fn report_master(
         &self,
         job_id: &str,
