@@ -7,6 +7,7 @@ import {
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type { Readable } from "node:stream";
 
 const endpoint = process.env.MINIO_ENDPOINT || "http://localhost:9000";
 const accessKeyId = process.env.MINIO_ACCESS_KEY || "minioadmin";

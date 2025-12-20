@@ -126,7 +126,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       });
 
       reply.send({
-        projects: projects.map((p) => ({
+        projects: projects.map((p: (typeof projects)[number]) => ({
           id: p.id,
           name: p.name,
           type: p.type.toLowerCase(),
@@ -167,7 +167,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
         name: project.name,
         type: project.type.toLowerCase(),
         status: project.status.toLowerCase(),
-        tracks: project.tracks.map((t) => ({
+        tracks: project.tracks.map((t: (typeof project.tracks)[number]) => ({
           id: t.id,
           name: t.name,
           status: t.status.toLowerCase(),
@@ -311,7 +311,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
               channels: track.analysisReport.channels,
             }
           : null,
-        masters: track.masters.map((m) => ({
+        masters: track.masters.map((m: (typeof track.masters)[number]) => ({
           id: m.id,
           profile: m.profile.toLowerCase(),
           loudnessTarget: m.loudnessTarget.toLowerCase(),
@@ -322,14 +322,14 @@ const v1Routes: FastifyPluginAsync = async (app) => {
           finalTruePeak: m.finalTruePeak,
           passesQc: m.passesQc,
         })),
-        codecPreviews: track.codecPreviews.map((c) => ({
+        codecPreviews: track.codecPreviews.map((c: (typeof track.codecPreviews)[number]) => ({
           id: c.id,
           codec: c.codec,
           previewUrl: c.previewUrl,
           artifactScore: c.artifactScore,
           clippingRisk: c.clippingRisk,
         })),
-        recentJobs: track.jobs.map((j) => ({
+        recentJobs: track.jobs.map((j: (typeof track.jobs)[number]) => ({
           id: j.id,
           type: j.type.toLowerCase(),
           status: j.status.toLowerCase(),
@@ -633,7 +633,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       }
 
       // Use provided order or default order
-      const trackIds = parsed.data.trackIds || project.tracks.map((t) => t.id);
+      const trackIds = parsed.data.trackIds || project.tracks.map((t: (typeof project.tracks)[number]) => t.id);
       const jobId = generateId("job_");
 
       // Create job record
@@ -706,11 +706,11 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       }
 
       // Verify all tracks are mastered
-      const unmasteredTracks = project.tracks.filter((t) => t.masters.length === 0);
+      const unmasteredTracks = project.tracks.filter((t: (typeof project.tracks)[number]) => t.masters.length === 0);
       if (unmasteredTracks.length > 0) {
         return reply.code(400).send({
           error: "All tracks must be mastered before export",
-          unmasteredTracks: unmasteredTracks.map((t) => t.id),
+          unmasteredTracks: unmasteredTracks.map((t: (typeof unmasteredTracks)[number]) => t.id),
         });
       }
 
@@ -781,7 +781,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       });
 
       reply.send({
-        exports: exports.map((e) => ({
+        exports: exports.map((e: (typeof exports)[number]) => ({
           id: e.id,
           formats: e.formats,
           includeQc: e.includeQc,
@@ -859,7 +859,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       });
 
       reply.send({
-        jobs: jobs.map((j) => ({
+        jobs: jobs.map((j: (typeof jobs)[number]) => ({
           id: j.id,
           type: j.type.toLowerCase().replace("_", "-"),
           status: j.status.toLowerCase(),
@@ -1219,7 +1219,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       });
 
       reply.send({
-        exports: exportJobs.map((e) => ({
+        exports: exportJobs.map((e: (typeof exportJobs)[number]) => ({
           id: e.id,
           status: e.status.toLowerCase(),
           bitDepth: e.bitDepth.replace("BD_", "").toLowerCase().replace("f", "f"),

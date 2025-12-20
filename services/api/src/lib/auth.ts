@@ -2,14 +2,18 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import prisma from "./db.js";
 
+// Extend FastifyRequest with our custom properties
 declare module "fastify" {
   interface FastifyRequest {
     userId?: string;
-    user?: {
-      id: string;
-      email: string;
-      name: string | null;
-    };
+  }
+}
+
+// Extend @fastify/jwt to type the JWT payload
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
+    payload: { id: string; email: string; name: string | null };
+    user: { id: string; email: string; name: string | null };
   }
 }
 
