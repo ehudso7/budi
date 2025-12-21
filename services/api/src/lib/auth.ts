@@ -6,6 +6,7 @@ import prisma from "./db.js";
 declare module "fastify" {
   interface FastifyRequest {
     userId?: string;
+    userPlan?: import("@prisma/client").Plan;
   }
 }
 
@@ -35,11 +36,12 @@ export async function registerAuth(app: FastifyInstance): Promise<void> {
         if (apiKey) {
           const user = await prisma.user.findUnique({
             where: { apiKey },
-            select: { id: true, email: true, name: true },
+            select: { id: true, email: true, name: true, plan: true },
           });
           if (user) {
             request.userId = user.id;
-            request.user = user;
+            request.user = { id: user.id, email: user.email, name: user.name };
+            request.userPlan = user.plan;
             return;
           }
         }
@@ -49,6 +51,13 @@ export async function registerAuth(app: FastifyInstance): Promise<void> {
         const payload = request.user as { id: string; email: string; name: string | null };
         request.userId = payload.id;
         request.user = payload;
+
+        // Fetch plan from database for JWT auth
+        const dbUser = await prisma.user.findUnique({
+          where: { id: payload.id },
+          select: { plan: true },
+        });
+        request.userPlan = dbUser?.plan || "FREE";
       } catch {
         reply.status(401).send({ error: "Unauthorized", message: "Invalid or missing authentication" });
       }
@@ -68,11 +77,12 @@ export async function optionalAuth(
     if (apiKey) {
       const user = await prisma.user.findUnique({
         where: { apiKey },
-        select: { id: true, email: true, name: true },
+        select: { id: true, email: true, name: true, plan: true },
       });
       if (user) {
         request.userId = user.id;
-        request.user = user;
+        request.user = { id: user.id, email: user.email, name: user.name };
+        request.userPlan = user.plan;
         return;
       }
     }
@@ -84,6 +94,13 @@ export async function optionalAuth(
       const payload = request.user as { id: string; email: string; name: string | null };
       request.userId = payload.id;
       request.user = payload;
+
+      // Fetch plan from database
+      const dbUser = await prisma.user.findUnique({
+        where: { id: payload.id },
+        select: { plan: true },
+      });
+      request.userPlan = dbUser?.plan || "FREE";
     }
   } catch {
     // Ignore auth errors for optional auth

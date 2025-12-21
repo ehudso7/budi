@@ -12,13 +12,160 @@ datasource db {
 
 // User accounts for API authentication
 model User {
+  id                  String              @id @default(cuid())
+  email               String              @unique
+  name                String?
+  apiKey              String              @unique @default(cuid())
+
+  // Subscription & billing (Phase 2)
+  stripeCustomerId    String?             @unique
+  subscriptionId      String?
+  subscriptionStatus  SubscriptionStatus  @default(NONE)
+  plan                Plan                @default(FREE)
+  trialEndsAt         DateTime?
+  currentPeriodEnd    DateTime?
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  projects            Project[]
+  auditLogs           AuditLog[]
+  usageRecords        UsageRecord[]
+  invoices            Invoice[]
+  deviceTokens        DeviceToken[]
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  NONE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+// Audit logging for security compliance
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action      String   // "login", "export", "api_call", "subscription_change"
+  resource    String   // "project", "track", "subscription"
+  resourceId  String?
+  ip          String?
+  userAgent   String?
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Usage tracking for metering
+model UsageRecord {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      UsageType
+  quantity  Int       @default(1)
+  metadata  Json?
+
+  createdAt DateTime  @default(now())
+
+  @@index([userId, type, createdAt])
+}
+
+enum UsageType {
+  TRACK_UPLOAD
+  TRACK_ANALYZE
+  TRACK_MASTER
+  TRACK_EXPORT
+  PROJECT_CREATE
+  API_CALL
+}
+
+// Plan limits configuration
+model PlanLimit {
+  id                String  @id @default(cuid())
+  plan              Plan    @unique
+  maxProjects       Int
+  maxTracksPerMonth Int
+  maxStorageGb      Int
+  priorityQueue     Boolean @default(false)
+  hdExports         Boolean @default(false)
+}
+
+// Invoices from Stripe
+model Invoice {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeInvoiceId String    @unique
+  amount          Int       // cents
+  currency        String    @default("usd")
+  status          String
+  paidAt          DateTime?
+  invoiceUrl      String?
+
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Device tokens for push notifications
+model DeviceToken {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  apiKey    String   @unique @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token     String   @unique
+  platform  Platform
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  projects  Project[]
+
+  @@index([userId])
+}
+
+enum Platform {
+  IOS
+  ANDROID
+}
+
+// Failed jobs for dead letter queue
+model FailedJob {
+  id            String    @id @default(cuid())
+  originalJobId String
+  queue         String
+  payload       Json
+  error         String
+  attempts      Int       @default(1)
+  maxAttempts   Int       @default(3)
+  nextRetryAt   DateTime?
+  status        DLQStatus @default(PENDING)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, nextRetryAt])
+}
+
+enum DLQStatus {
+  PENDING
+  RETRYING
+  EXHAUSTED
+  RESOLVED
 }
 
 // Project container (single track or album)

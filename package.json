@@ -12,6 +12,7 @@
     "infra:down": "docker compose -f infra/docker-compose.yml down -v"
   },
   "devDependencies": {
-    "turbo": "^2.3.0"
+    "turbo": "^2.3.0",
+    "@vercel/node": "^5.0.0"
   }
 }
