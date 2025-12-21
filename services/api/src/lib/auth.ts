@@ -6,7 +6,7 @@ import prisma from "./db.js";
 declare module "fastify" {
   interface FastifyRequest {
     userId?: string;
-    userPlan?: import("@prisma/client").Plan;
+    userPlan?: import("../../generated/prisma").Plan;
   }
 }
 

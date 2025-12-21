@@ -1,6 +1,6 @@
 // GDPR compliance utilities
 import prisma from "./db.js";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "../../generated/prisma";
 import { getUserAuditLogs, auditDataRequest } from "./audit.js";
 import type { FastifyRequest } from "fastify";
 

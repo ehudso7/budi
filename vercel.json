@@ -9,12 +9,7 @@
     "services/api/api/index.ts": {
       "memory": 1024,
       "maxDuration": 30,
-      "includeFiles": [
-        "services/api/dist/**",
-        "node_modules/.prisma/client/**",
-        "node_modules/@prisma/client/**",
-        "services/api/prisma/schema.prisma"
-      ]
+      "includeFiles": "services/api/**"
     }
   },
   "rewrites": [

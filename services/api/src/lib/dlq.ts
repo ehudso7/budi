@@ -3,7 +3,7 @@ import prisma from "./db.js";
 import { enqueueJob } from "./redis.js";
 import { Metrics } from "./metrics.js";
 import { captureError } from "./errorTracking.js";
-import type { DLQStatus } from "@prisma/client";
+import type { DLQStatus } from "../../generated/prisma";
 
 export interface FailedJobData {
   originalJobId: string;

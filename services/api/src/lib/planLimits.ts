@@ -1,6 +1,6 @@
 // Plan limit enforcement
 import prisma from "./db.js";
-import type { Plan, UsageType } from "@prisma/client";
+import type { Plan, UsageType } from "../../generated/prisma";
 
 // Default plan limits (can be overridden in database)
 const DEFAULT_LIMITS: Record<Plan, {
