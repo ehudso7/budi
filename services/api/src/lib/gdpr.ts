@@ -1,5 +1,6 @@
 // GDPR compliance utilities
 import prisma from "./db.js";
+import type { Prisma } from "@prisma/client";
 import { getUserAuditLogs, auditDataRequest } from "./audit.js";
 import type { FastifyRequest } from "fastify";
 
@@ -181,7 +182,7 @@ export async function deleteUserData(
     ]);
 
   // Delete in correct order (respecting foreign keys)
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Delete tracks (cascade from projects)
     await tx.project.deleteMany({ where: { userId } });
 
