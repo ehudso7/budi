@@ -180,9 +180,12 @@ export async function handleSubscriptionChange(
       subscriptionStatus: status,
       plan,
       trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-      currentPeriodEnd: new Date(
-        ((subscription as unknown as { current_period_end: number }).current_period_end || 0) * 1000
-      ),
+      currentPeriodEnd:
+        (subscription as unknown as { current_period_end?: number }).current_period_end
+          ? new Date(
+              (subscription as unknown as { current_period_end: number }).current_period_end * 1000
+            )
+          : null,
     },
   });
 

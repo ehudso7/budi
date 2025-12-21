@@ -185,9 +185,7 @@ export function createMetricsHook() {
     reply.then(
       () => {
         const duration = Date.now() - start;
-        const path =
-          (request as unknown as { routerPath?: string }).routerPath ||
-          request.url.split("?")[0];
+        const path = request.routeOptions?.url || request.url.split("?")[0];
 
         Metrics.httpRequestsTotal(request.method, path, reply.statusCode);
         Metrics.httpRequestDuration(request.method, path, duration);
@@ -195,7 +193,7 @@ export function createMetricsHook() {
       () => {
         // Error case - still record the request
         const duration = Date.now() - start;
-        const path = request.url.split("?")[0];
+        const path = request.routeOptions?.url || request.url.split("?")[0];
         Metrics.httpRequestsTotal(request.method, path, 500);
         Metrics.httpRequestDuration(request.method, path, duration);
       }
