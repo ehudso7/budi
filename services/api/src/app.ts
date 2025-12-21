@@ -11,6 +11,8 @@ import stripeWebhookRoutes from "./routes/stripeWebhook.js";
 import notificationRoutes from "./routes/notifications.js";
 import iapRoutes from "./routes/iap.js";
 import observabilityRoutes from "./routes/observability.js";
+import gdprRoutes from "./routes/gdpr.js";
+import { registerSwagger } from "./lib/swagger.js";
 import { createMetricsHook } from "./lib/metrics.js";
 import { errorHandler } from "./lib/errorTracking.js";
 
@@ -26,6 +28,9 @@ export async function buildApp() {
     origin: process.env.CORS_ORIGIN || true,
     credentials: true,
   });
+
+  // Register OpenAPI documentation
+  await registerSwagger(app);
 
   // Register JWT authentication
   await registerAuth(app);
@@ -46,6 +51,7 @@ export async function buildApp() {
   app.register(notificationRoutes);
   app.register(iapRoutes);
   app.register(observabilityRoutes);
+  app.register(gdprRoutes);
 
   // Add metrics collection hook
   app.addHook("onRequest", createMetricsHook());
