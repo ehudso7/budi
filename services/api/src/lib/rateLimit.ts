@@ -36,39 +36,45 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   const limits = RATE_LIMITS[plan];
   const limit = windowSeconds === 60 ? limits.requestsPerMinute : limits.requestsPerHour;
-  const key = `rate:${userId}:${windowSeconds}`;
   const now = Date.now();
-  const windowStart = now - windowSeconds * 1000;
-
-  // Use Redis pipeline for atomic operations
-  const pipeline = redis.pipeline();
-
-  // Remove old entries outside the window
-  pipeline.zremrangebyscore(key, 0, windowStart);
-
-  // Count current requests in window
-  pipeline.zcard(key);
-
-  // Add current request
-  pipeline.zadd(key, now, `${now}-${Math.random()}`);
-
-  // Set expiry to clean up old keys
-  pipeline.expire(key, windowSeconds + 1);
-
-  const results = await pipeline.exec();
-  const currentCount = (results?.[1]?.[1] as number) || 0;
-
   const resetAt = new Date(now + windowSeconds * 1000);
-  const remaining = Math.max(0, limit - currentCount - 1);
-  const allowed = currentCount < limit;
 
-  return {
-    allowed,
-    remaining,
-    limit,
-    resetAt,
-    retryAfter: allowed ? undefined : Math.ceil((windowStart + windowSeconds * 1000 - now) / 1000),
-  };
+  try {
+    const key = `rate:${userId}:${windowSeconds}`;
+    const windowStart = now - windowSeconds * 1000;
+
+    // Use Redis pipeline for atomic operations
+    const pipeline = redis.pipeline();
+
+    // Remove old entries outside the window
+    pipeline.zremrangebyscore(key, 0, windowStart);
+
+    // Count current requests in window
+    pipeline.zcard(key);
+
+    // Add current request
+    pipeline.zadd(key, now, `${now}-${Math.random()}`);
+
+    // Set expiry to clean up old keys
+    pipeline.expire(key, windowSeconds + 1);
+
+    const results = await pipeline.exec();
+    const currentCount = (results?.[1]?.[1] as number) || 0;
+
+    const remaining = Math.max(0, limit - currentCount - 1);
+    const allowed = currentCount < limit;
+
+    return {
+      allowed,
+      remaining,
+      limit,
+      resetAt,
+      retryAfter: allowed ? undefined : Math.ceil((windowStart + windowSeconds * 1000 - now) / 1000),
+    };
+  } catch {
+    // Redis unavailable - allow request (fail open for availability)
+    return { allowed: true, remaining: limit, limit, resetAt };
+  }
 }
 
 /**
@@ -86,30 +92,36 @@ export async function checkOperationLimit(
   }
 
   const limit = limits[plan];
-  const key = `op:${userId}:${operation}`;
   const now = Date.now();
-  const hourAgo = now - 3600 * 1000;
-
-  const pipeline = redis.pipeline();
-  pipeline.zremrangebyscore(key, 0, hourAgo);
-  pipeline.zcard(key);
-  pipeline.zadd(key, now, `${now}-${Math.random()}`);
-  pipeline.expire(key, 3601);
-
-  const results = await pipeline.exec();
-  const currentCount = (results?.[1]?.[1] as number) || 0;
-
   const resetAt = new Date(now + 3600 * 1000);
-  const remaining = Math.max(0, limit - currentCount - 1);
-  const allowed = currentCount < limit;
 
-  return {
-    allowed,
-    remaining,
-    limit,
-    resetAt,
-    retryAfter: allowed ? undefined : 3600,
-  };
+  try {
+    const key = `op:${userId}:${operation}`;
+    const hourAgo = now - 3600 * 1000;
+
+    const pipeline = redis.pipeline();
+    pipeline.zremrangebyscore(key, 0, hourAgo);
+    pipeline.zcard(key);
+    pipeline.zadd(key, now, `${now}-${Math.random()}`);
+    pipeline.expire(key, 3601);
+
+    const results = await pipeline.exec();
+    const currentCount = (results?.[1]?.[1] as number) || 0;
+
+    const remaining = Math.max(0, limit - currentCount - 1);
+    const allowed = currentCount < limit;
+
+    return {
+      allowed,
+      remaining,
+      limit,
+      resetAt,
+      retryAfter: allowed ? undefined : 3600,
+    };
+  } catch {
+    // Redis unavailable - allow request (fail open for availability)
+    return { allowed: true, remaining: limit, limit, resetAt };
+  }
 }
 
 /**
@@ -122,42 +134,64 @@ export async function getRateLimitStatus(
   const limits = RATE_LIMITS[plan];
   const now = Date.now();
 
-  const minuteKey = `rate:${userId}:60`;
-  const hourKey = `rate:${userId}:3600`;
+  try {
+    const minuteKey = `rate:${userId}:60`;
+    const hourKey = `rate:${userId}:3600`;
 
-  const pipeline = redis.pipeline();
-  pipeline.zcount(minuteKey, now - 60000, now);
-  pipeline.zcount(hourKey, now - 3600000, now);
+    const pipeline = redis.pipeline();
+    pipeline.zcount(minuteKey, now - 60000, now);
+    pipeline.zcount(hourKey, now - 3600000, now);
 
-  const results = await pipeline.exec();
-  const minuteCount = (results?.[0]?.[1] as number) || 0;
-  const hourCount = (results?.[1]?.[1] as number) || 0;
+    const results = await pipeline.exec();
+    const minuteCount = (results?.[0]?.[1] as number) || 0;
+    const hourCount = (results?.[1]?.[1] as number) || 0;
 
-  return {
-    minute: {
-      allowed: minuteCount < limits.requestsPerMinute,
-      remaining: Math.max(0, limits.requestsPerMinute - minuteCount),
-      limit: limits.requestsPerMinute,
-      resetAt: new Date(now + 60000),
-    },
-    hour: {
-      allowed: hourCount < limits.requestsPerHour,
-      remaining: Math.max(0, limits.requestsPerHour - hourCount),
-      limit: limits.requestsPerHour,
-      resetAt: new Date(now + 3600000),
-    },
-  };
+    return {
+      minute: {
+        allowed: minuteCount < limits.requestsPerMinute,
+        remaining: Math.max(0, limits.requestsPerMinute - minuteCount),
+        limit: limits.requestsPerMinute,
+        resetAt: new Date(now + 60000),
+      },
+      hour: {
+        allowed: hourCount < limits.requestsPerHour,
+        remaining: Math.max(0, limits.requestsPerHour - hourCount),
+        limit: limits.requestsPerHour,
+        resetAt: new Date(now + 3600000),
+      },
+    };
+  } catch {
+    // Redis unavailable - return full limits
+    return {
+      minute: {
+        allowed: true,
+        remaining: limits.requestsPerMinute,
+        limit: limits.requestsPerMinute,
+        resetAt: new Date(now + 60000),
+      },
+      hour: {
+        allowed: true,
+        remaining: limits.requestsPerHour,
+        limit: limits.requestsPerHour,
+        resetAt: new Date(now + 3600000),
+      },
+    };
+  }
 }
 
 /**
  * Reset rate limits for a user (admin use)
  */
 export async function resetRateLimits(userId: string): Promise<void> {
-  const keys = await redis.keys(`rate:${userId}:*`);
-  const opKeys = await redis.keys(`op:${userId}:*`);
-  const allKeys = [...keys, ...opKeys];
+  try {
+    const keys = await redis.keys(`rate:${userId}:*`);
+    const opKeys = await redis.keys(`op:${userId}:*`);
+    const allKeys = [...keys, ...opKeys];
 
-  if (allKeys.length > 0) {
-    await redis.del(...allKeys);
+    if (allKeys.length > 0) {
+      await redis.del(...allKeys);
+    }
+  } catch {
+    // Redis unavailable - silently ignore
   }
 }

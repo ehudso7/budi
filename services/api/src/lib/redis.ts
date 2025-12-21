@@ -1,9 +1,60 @@
-// Redis client for job queue
+// Redis client for job queue (lazy-loaded for serverless)
 import Redis from "ioredis";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
-export const redis = new Redis(redisUrl);
+// Lazy singleton for serverless environments
+let _redis: Redis | null = null;
+let _connectionFailed = false;
+
+/**
+ * Get Redis client (lazy initialization)
+ * Returns null if connection previously failed to avoid repeated timeouts
+ */
+export function getRedis(): Redis | null {
+  if (_connectionFailed) {
+    return null;
+  }
+
+  if (!_redis) {
+    _redis = new Redis(redisUrl, {
+      maxRetriesPerRequest: 1,
+      retryStrategy: (times) => {
+        if (times > 2) {
+          _connectionFailed = true;
+          return null; // Stop retrying
+        }
+        return Math.min(times * 100, 1000);
+      },
+      connectTimeout: 5000,
+      lazyConnect: true,
+    });
+
+    _redis.on("error", (err) => {
+      console.error("Redis connection error:", err.message);
+      _connectionFailed = true;
+    });
+  }
+
+  return _redis;
+}
+
+// Legacy export for backwards compatibility (lazy getter)
+export const redis = new Proxy({} as Redis, {
+  get(_, prop) {
+    const client = getRedis();
+    if (!client) {
+      // Return no-op functions for graceful degradation
+      if (typeof prop === "string") {
+        return async () => {
+          console.warn(`Redis unavailable, skipping operation: ${prop}`);
+          return null;
+        };
+      }
+    }
+    return (client as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
 
 // Job queue names
 export const QUEUES = {
@@ -54,8 +105,15 @@ export async function getJobResult(jobId: string): Promise<object | null> {
 /**
  * Subscribe to job results
  */
-export function createSubscriber(): Redis {
-  return new Redis(redisUrl);
+export function createSubscriber(): Redis | null {
+  if (_connectionFailed) {
+    return null;
+  }
+  return new Redis(redisUrl, {
+    maxRetriesPerRequest: 1,
+    connectTimeout: 5000,
+    lazyConnect: true,
+  });
 }
 
 export default redis;

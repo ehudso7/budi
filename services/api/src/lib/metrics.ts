@@ -20,11 +20,15 @@ export async function incrementCounter(
   labels: MetricLabels = {},
   value: number = 1
 ): Promise<void> {
-  const key = formatMetricKey("counter", name, labels);
-  await redis.incrbyfloat(key, value);
+  try {
+    const key = formatMetricKey("counter", name, labels);
+    await redis.incrbyfloat(key, value);
 
-  // Set TTL for automatic cleanup (7 days)
-  await redis.expire(key, 7 * 24 * 60 * 60);
+    // Set TTL for automatic cleanup (7 days)
+    await redis.expire(key, 7 * 24 * 60 * 60);
+  } catch {
+    // Silently ignore metrics failures - non-critical
+  }
 }
 
 /**
@@ -35,8 +39,12 @@ export async function setGauge(
   value: number,
   labels: MetricLabels = {}
 ): Promise<void> {
-  const key = formatMetricKey("gauge", name, labels);
-  await redis.set(key, value.toString(), "EX", 7 * 24 * 60 * 60);
+  try {
+    const key = formatMetricKey("gauge", name, labels);
+    await redis.set(key, value.toString(), "EX", 7 * 24 * 60 * 60);
+  } catch {
+    // Silently ignore metrics failures - non-critical
+  }
 }
 
 /**
@@ -47,29 +55,33 @@ export async function recordHistogram(
   value: number,
   labels: MetricLabels = {}
 ): Promise<void> {
-  const baseKey = formatMetricKey("histogram", name, labels);
+  try {
+    const baseKey = formatMetricKey("histogram", name, labels);
 
-  // Store in Redis sorted set for percentile calculations
-  const timestamp = Date.now();
-  await redis.zadd(`${baseKey}:values`, timestamp, `${timestamp}:${value}`);
+    // Store in Redis sorted set for percentile calculations
+    const timestamp = Date.now();
+    await redis.zadd(`${baseKey}:values`, timestamp, `${timestamp}:${value}`);
 
-  // Increment count
-  await redis.incr(`${baseKey}:count`);
+    // Increment count
+    await redis.incr(`${baseKey}:count`);
 
-  // Update sum
-  await redis.incrbyfloat(`${baseKey}:sum`, value);
+    // Update sum
+    await redis.incrbyfloat(`${baseKey}:sum`, value);
 
-  // Update bucket counts
-  for (const bucket of LATENCY_BUCKETS) {
-    if (value <= bucket) {
-      await redis.incr(`${baseKey}:bucket:${bucket}`);
+    // Update bucket counts
+    for (const bucket of LATENCY_BUCKETS) {
+      if (value <= bucket) {
+        await redis.incr(`${baseKey}:bucket:${bucket}`);
+      }
     }
-  }
 
-  // Set TTL
-  await redis.expire(`${baseKey}:values`, 24 * 60 * 60);
-  await redis.expire(`${baseKey}:count`, 24 * 60 * 60);
-  await redis.expire(`${baseKey}:sum`, 24 * 60 * 60);
+    // Set TTL
+    await redis.expire(`${baseKey}:values`, 24 * 60 * 60);
+    await redis.expire(`${baseKey}:count`, 24 * 60 * 60);
+    await redis.expire(`${baseKey}:sum`, 24 * 60 * 60);
+  } catch {
+    // Silently ignore metrics failures - non-critical
+  }
 }
 
 /**
@@ -137,31 +149,35 @@ export const Metrics = {
  * Get all metrics for Prometheus scraping
  */
 export async function getPrometheusMetrics(): Promise<string> {
-  const lines: string[] = [];
+  try {
+    const lines: string[] = [];
 
-  // Get all metric keys
-  const counterKeys = await redis.keys("metrics:counter:*");
-  const gaugeKeys = await redis.keys("metrics:gauge:*");
+    // Get all metric keys
+    const counterKeys = await redis.keys("metrics:counter:*");
+    const gaugeKeys = await redis.keys("metrics:gauge:*");
 
-  // Format counters
-  for (const key of counterKeys) {
-    const value = await redis.get(key);
-    if (value) {
-      const metricName = key.replace("metrics:counter:", "");
-      lines.push(formatPrometheusMetric(metricName, parseFloat(value)));
+    // Format counters
+    for (const key of counterKeys) {
+      const value = await redis.get(key);
+      if (value) {
+        const metricName = key.replace("metrics:counter:", "");
+        lines.push(formatPrometheusMetric(metricName, parseFloat(value)));
+      }
     }
-  }
 
-  // Format gauges
-  for (const key of gaugeKeys) {
-    const value = await redis.get(key);
-    if (value) {
-      const metricName = key.replace("metrics:gauge:", "");
-      lines.push(formatPrometheusMetric(metricName, parseFloat(value)));
+    // Format gauges
+    for (const key of gaugeKeys) {
+      const value = await redis.get(key);
+      if (value) {
+        const metricName = key.replace("metrics:gauge:", "");
+        lines.push(formatPrometheusMetric(metricName, parseFloat(value)));
+      }
     }
-  }
 
-  return lines.join("\n");
+    return lines.join("\n");
+  } catch {
+    return "# Metrics unavailable - Redis connection failed\n";
+  }
 }
 
 function formatPrometheusMetric(name: string, value: number): string {

@@ -31,10 +31,29 @@ interface CircuitBreakerState {
  * Get current circuit breaker state from Redis
  */
 async function getState(name: string): Promise<CircuitBreakerState> {
-  const key = `circuit:${name}`;
-  const data = await redis.hgetall(key);
+  try {
+    const key = `circuit:${name}`;
+    const data = await redis.hgetall(key);
 
-  if (!data || Object.keys(data).length === 0) {
+    if (!data || Object.keys(data).length === 0) {
+      return {
+        state: "closed",
+        failures: 0,
+        successes: 0,
+        lastFailure: 0,
+        lastStateChange: Date.now(),
+      };
+    }
+
+    return {
+      state: (data.state as CircuitState) || "closed",
+      failures: parseInt(data.failures || "0", 10),
+      successes: parseInt(data.successes || "0", 10),
+      lastFailure: parseInt(data.lastFailure || "0", 10),
+      lastStateChange: parseInt(data.lastStateChange || "0", 10),
+    };
+  } catch {
+    // Redis unavailable - return default closed state
     return {
       state: "closed",
       failures: 0,
@@ -43,32 +62,28 @@ async function getState(name: string): Promise<CircuitBreakerState> {
       lastStateChange: Date.now(),
     };
   }
-
-  return {
-    state: (data.state as CircuitState) || "closed",
-    failures: parseInt(data.failures || "0", 10),
-    successes: parseInt(data.successes || "0", 10),
-    lastFailure: parseInt(data.lastFailure || "0", 10),
-    lastStateChange: parseInt(data.lastStateChange || "0", 10),
-  };
 }
 
 /**
  * Update circuit breaker state in Redis
  */
 async function setState(name: string, state: Partial<CircuitBreakerState>): Promise<void> {
-  const key = `circuit:${name}`;
-  const updates: string[] = [];
+  try {
+    const key = `circuit:${name}`;
+    const updates: string[] = [];
 
-  if (state.state !== undefined) updates.push("state", state.state);
-  if (state.failures !== undefined) updates.push("failures", state.failures.toString());
-  if (state.successes !== undefined) updates.push("successes", state.successes.toString());
-  if (state.lastFailure !== undefined) updates.push("lastFailure", state.lastFailure.toString());
-  if (state.lastStateChange !== undefined) updates.push("lastStateChange", state.lastStateChange.toString());
+    if (state.state !== undefined) updates.push("state", state.state);
+    if (state.failures !== undefined) updates.push("failures", state.failures.toString());
+    if (state.successes !== undefined) updates.push("successes", state.successes.toString());
+    if (state.lastFailure !== undefined) updates.push("lastFailure", state.lastFailure.toString());
+    if (state.lastStateChange !== undefined) updates.push("lastStateChange", state.lastStateChange.toString());
 
-  if (updates.length > 0) {
-    await redis.hset(key, ...updates);
-    await redis.expire(key, 24 * 60 * 60); // TTL: 24 hours
+    if (updates.length > 0) {
+      await redis.hset(key, ...updates);
+      await redis.expire(key, 24 * 60 * 60); // TTL: 24 hours
+    }
+  } catch {
+    // Redis unavailable - silently ignore state updates
   }
 }
 
