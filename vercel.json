@@ -2,9 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "installCommand": "pnpm install --prod=false",
-  "buildCommand": "pnpm turbo run build --filter=@budi/api && mkdir -p public && echo 'ok' > public/index.html",
-  "outputDirectory": "public",
-  "framework": null,
+  "buildCommand": "pnpm turbo run build --filter=@budi/api --filter=@budi/web",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs",
   "functions": {
     "api/index.ts": {
       "memory": 1024,
@@ -14,7 +14,7 @@
   },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/:path*",
       "destination": "/api"
     }
   ]
