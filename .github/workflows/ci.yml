@@ -92,7 +92,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter api prisma generate
+        run: pnpm --filter api run db:generate
 
       - name: Build
         run: pnpm turbo run build
@@ -169,7 +169,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter api prisma generate
+        run: pnpm --filter api run db:generate
 
       - name: Run migrations
         run: pnpm --filter api prisma migrate deploy
