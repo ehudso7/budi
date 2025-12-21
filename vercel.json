@@ -3,6 +3,7 @@
   "version": 2,
   "buildCommand": "pnpm turbo run build --filter=@budi/api",
   "installCommand": "pnpm install",
+  "outputDirectory": "public",
   "framework": null,
   "functions": {
     "services/api/api/index.ts": {
