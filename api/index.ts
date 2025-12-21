@@ -10,9 +10,15 @@ async function getApp() {
   if (!app) {
     if (!appPromise) {
       appPromise = (async () => {
-        const instance = await buildApp();
-        await instance.ready();
-        return instance;
+        try {
+          const instance = await buildApp();
+          await instance.ready();
+          return instance;
+        } catch (error) {
+          // Reset appPromise on failure to allow retry on next request
+          appPromise = null;
+          throw error;
+        }
       })();
     }
     app = await appPromise;
