@@ -1,7 +1,7 @@
 // Stripe service for payment and subscription management
 import Stripe from "stripe";
 import prisma from "./db.js";
-import type { Plan, SubscriptionStatus } from "../../generated/prisma";
+import type { Plan, SubscriptionStatus } from "../../generated/prisma/index.js";
 import { auditSubscription, auditPayment } from "./audit.js";
 
 // Initialize Stripe client

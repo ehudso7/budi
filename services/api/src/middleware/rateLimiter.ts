@@ -1,6 +1,6 @@
 // Rate limiting middleware for Fastify
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import type { Plan } from "../../generated/prisma";
+import type { Plan } from "../../generated/prisma/index.js";
 import { checkRateLimit, checkOperationLimit } from "../lib/rateLimit.js";
 
 // Extend FastifyRequest to include user plan

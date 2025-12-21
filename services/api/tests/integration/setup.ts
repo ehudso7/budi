@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../generated/prisma';
+import { PrismaClient } from '../../generated/prisma/index.js';
 import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
 import Redis from 'ioredis';
 

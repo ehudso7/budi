@@ -1,6 +1,6 @@
 // Observability routes for metrics and health checks
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
-import type { DLQStatus } from "../../generated/prisma";
+import type { DLQStatus } from "../../generated/prisma/index.js";
 import { getPrometheusMetrics } from "../lib/metrics.js";
 import { getRecentErrors, getErrorTrackingHealth } from "../lib/errorTracking.js";
 import { getAllCircuitStatus, CircuitBreakers } from "../lib/circuitBreaker.js";

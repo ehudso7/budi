@@ -1,7 +1,7 @@
 // StoreKit 2 Server-Side Integration for iOS In-App Purchases
 import prisma from "./db.js";
 import { auditSubscription, auditPayment } from "./audit.js";
-import type { Plan } from "../../generated/prisma";
+import type { Plan } from "../../generated/prisma/index.js";
 
 // App Store configuration
 const APP_STORE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || "com.budi.app";
