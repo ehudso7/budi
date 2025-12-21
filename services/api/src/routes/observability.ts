@@ -1,5 +1,6 @@
 // Observability routes for metrics and health checks
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
+import type { DLQStatus } from "@prisma/client";
 import { getPrometheusMetrics } from "../lib/metrics.js";
 import { getRecentErrors, getErrorTrackingHealth } from "../lib/errorTracking.js";
 import { getAllCircuitStatus, CircuitBreakers } from "../lib/circuitBreaker.js";
@@ -16,7 +17,7 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
       const metrics = await getPrometheusMetrics();
       reply.header("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
       return metrics;
-    } catch (error) {
+    } catch {
       return reply.code(500).send({ error: "Failed to collect metrics" });
     }
   });
@@ -128,7 +129,7 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
         }
 
         return { queues: status };
-      } catch (error) {
+      } catch {
         return reply.code(500).send({ error: "Failed to get queue status" });
       }
     }
@@ -176,7 +177,7 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
             {} as Record<string, number>
           ),
         };
-      } catch (error) {
+      } catch {
         return reply.code(500).send({ error: "Failed to get stats" });
       }
     }
@@ -199,7 +200,7 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
       try {
         const circuits = await getAllCircuitStatus();
         return { circuits };
-      } catch (error) {
+      } catch {
         return reply.code(500).send({ error: "Failed to get circuit status" });
       }
     }
@@ -250,7 +251,7 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
       try {
         const stats = await getDLQStats();
         return { stats };
-      } catch (error) {
+      } catch {
         return reply.code(500).send({ error: "Failed to get DLQ stats" });
       }
     }
@@ -280,13 +281,13 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
       try {
         const { status, queue, limit, offset } = request.query;
         const result = await getFailedJobs({
-          status: status as any,
+          status: status as DLQStatus | undefined,
           queue,
           limit: limit ? parseInt(limit, 10) : undefined,
           offset: offset ? parseInt(offset, 10) : undefined,
         });
         return result;
-      } catch (error) {
+      } catch {
         return reply.code(500).send({ error: "Failed to get failed jobs" });
       }
     }
@@ -317,7 +318,7 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
         } else {
           return reply.code(400).send({ error: "Failed to retry job" });
         }
-      } catch (error) {
+      } catch {
         return reply.code(500).send({ error: "Failed to retry job" });
       }
     }

@@ -1,5 +1,6 @@
 // Metrics collection and observability
 import redis from "./redis.js";
+import type { FastifyRequest, FastifyReply } from "fastify";
 
 // Metric types
 export type MetricType = "counter" | "gauge" | "histogram";
@@ -89,6 +90,9 @@ function formatMetricKey(
 
 // Common metrics
 export const Metrics = {
+  // Direct counter increment for custom metrics
+  incrementCounter,
+
   // HTTP metrics
   httpRequestsTotal: (method: string, path: string, status: number) =>
     incrementCounter("http_requests_total", { method, path, status }),
@@ -175,7 +179,7 @@ function formatPrometheusMetric(name: string, value: number): string {
  * Fastify hook to record request metrics
  */
 export function createMetricsHook() {
-  return async function metricsHook(request: any, reply: any) {
+  return async function metricsHook(request: FastifyRequest, reply: FastifyReply) {
     const start = Date.now();
 
     reply.then(() => {

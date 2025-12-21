@@ -1,7 +1,7 @@
 // StoreKit 2 Server-Side Integration for iOS In-App Purchases
 import prisma from "./db.js";
 import { auditSubscription, auditPayment } from "./audit.js";
-import type { Plan, SubscriptionStatus } from "@prisma/client";
+import type { Plan } from "@prisma/client";
 
 // App Store configuration
 const APP_STORE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || "com.budi.app";
@@ -73,20 +73,30 @@ async function generateAppStoreToken(): Promise<string> {
 
 /**
  * Verify and decode a JWS transaction from StoreKit
+ *
+ * TODO: SECURITY - Implement full JWS signature verification:
+ * 1. Extract x5c certificate chain from header
+ * 2. Verify chain against Apple's root CA
+ * 3. Use jwtVerify with leaf certificate public key
+ * 4. Validate bundleId and environment claims
+ *
+ * Current implementation only decodes the payload for development.
+ * This MUST be implemented before production use.
  */
 async function verifyJWSTransaction(
   signedTransaction: string
 ): Promise<JWSTransactionInfo> {
-  const { jwtVerify, importX509 } = await import("jose");
+  // TODO: In production, implement full verification using jose:
+  // const { jwtVerify, importX509 } = await import("jose");
+  // Extract x5c from header, verify cert chain, then jwtVerify
 
-  // Decode the header to get the certificate chain
-  const [headerB64] = signedTransaction.split(".");
-  const header = JSON.parse(Buffer.from(headerB64, "base64url").toString());
-
-  // In production, verify the certificate chain against Apple's root CA
-  // For now, decode and trust the payload
   const payloadB64 = signedTransaction.split(".")[1];
   const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
+
+  // Validate required fields
+  if (!payload.bundleId || !payload.transactionId) {
+    throw new Error("Invalid transaction payload");
+  }
 
   return payload as JWSTransactionInfo;
 }

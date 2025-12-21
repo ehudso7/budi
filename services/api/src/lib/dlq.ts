@@ -1,6 +1,6 @@
 // Dead Letter Queue (DLQ) for failed job handling
 import prisma from "./db.js";
-import redis, { enqueueJob } from "./redis.js";
+import { enqueueJob } from "./redis.js";
 import { Metrics } from "./metrics.js";
 import { captureError } from "./errorTracking.js";
 import type { DLQStatus } from "@prisma/client";
