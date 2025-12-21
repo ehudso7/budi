@@ -9,6 +9,7 @@ import webhookRoutes from "./routes/webhooks.js";
 import billingRoutes from "./routes/billing.js";
 import stripeWebhookRoutes from "./routes/stripeWebhook.js";
 import notificationRoutes from "./routes/notifications.js";
+import iapRoutes from "./routes/iap.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -40,6 +41,7 @@ export async function buildApp() {
   // Register Stripe webhook in encapsulated scope (needs raw body parser)
   app.register(stripeWebhookRoutes);
   app.register(notificationRoutes);
+  app.register(iapRoutes);
 
   // Health check endpoint
   app.get("/health", async () => {
