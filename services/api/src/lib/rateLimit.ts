@@ -1,6 +1,6 @@
 // Redis-based sliding window rate limiter
 import redis from "./redis.js";
-import type { Plan } from "@prisma/client";
+import type { Plan } from "../../generated/prisma";
 
 // Rate limit configuration by plan
 const RATE_LIMITS: Record<Plan, { requestsPerMinute: number; requestsPerHour: number }> = {

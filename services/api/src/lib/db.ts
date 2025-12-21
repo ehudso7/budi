@@ -1,5 +1,5 @@
 // Database client singleton using Prisma
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../../generated/prisma";
 
 declare global {
   var prisma: PrismaClient | undefined;
