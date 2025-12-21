@@ -77,7 +77,7 @@ export async function processDLQ(): Promise<{ processed: number; failed: number 
       });
 
       // Re-enqueue the job
-      await enqueueJob(job.queue, job.payload);
+      await enqueueJob(job.queue, job.payload as object);
 
       // Mark as resolved (the worker will handle it)
       await prisma.failedJob.update({
@@ -146,23 +146,20 @@ export async function getDLQStats(): Promise<{
     }),
   ]);
 
-  const byStatus = statusCounts.reduce(
-    (acc: Record<string, number>, s: { status: string; _count: number }) => ({
-      ...acc,
-      [s.status.toLowerCase()]: s._count,
-    }),
-    { pending: 0, retrying: 0, exhausted: 0, resolved: 0 }
-  );
+  const stats = { pending: 0, retrying: 0, exhausted: 0, resolved: 0 };
+  for (const s of statusCounts) {
+    const key = s.status.toLowerCase() as keyof typeof stats;
+    if (key in stats) {
+      stats[key] = s._count;
+    }
+  }
 
-  const byQueue = queueCounts.reduce(
-    (acc: Record<string, number>, q: { queue: string; _count: number }) => ({
-      ...acc,
-      [q.queue]: q._count,
-    }),
-    {} as Record<string, number>
-  );
+  const byQueue: Record<string, number> = {};
+  for (const q of queueCounts) {
+    byQueue[q.queue] = q._count;
+  }
 
-  return { ...byStatus, byQueue };
+  return { ...stats, byQueue };
 }
 
 /**
@@ -236,7 +233,7 @@ export async function retryJob(failedJobId: string): Promise<boolean> {
       data: { status: "RETRYING" },
     });
 
-    await enqueueJob(job.queue, job.payload);
+    await enqueueJob(job.queue, job.payload as object);
 
     await prisma.failedJob.update({
       where: { id: failedJobId },
