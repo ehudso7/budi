@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --prod=false",
   "buildCommand": "pnpm turbo run build --filter=@budi/api && mkdir -p public && echo '<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"0;url=/health\"></head><body>Redirecting to API...</body></html>' > public/index.html",
   "outputDirectory": "public",
   "framework": null,
