@@ -147,12 +147,18 @@ export async function getDLQStats(): Promise<{
   ]);
 
   const byStatus = statusCounts.reduce(
-    (acc, s) => ({ ...acc, [s.status.toLowerCase()]: s._count }),
+    (acc: Record<string, number>, s: { status: string; _count: number }) => ({
+      ...acc,
+      [s.status.toLowerCase()]: s._count,
+    }),
     { pending: 0, retrying: 0, exhausted: 0, resolved: 0 }
   );
 
   const byQueue = queueCounts.reduce(
-    (acc, q) => ({ ...acc, [q.queue]: q._count }),
+    (acc: Record<string, number>, q: { queue: string; _count: number }) => ({
+      ...acc,
+      [q.queue]: q._count,
+    }),
     {} as Record<string, number>
   );
 

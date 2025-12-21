@@ -182,12 +182,23 @@ export function createMetricsHook() {
   return async function metricsHook(request: FastifyRequest, reply: FastifyReply) {
     const start = Date.now();
 
-    reply.then(() => {
-      const duration = Date.now() - start;
-      const path = request.routerPath || request.url.split("?")[0];
+    reply.then(
+      () => {
+        const duration = Date.now() - start;
+        const path =
+          (request as unknown as { routerPath?: string }).routerPath ||
+          request.url.split("?")[0];
 
-      Metrics.httpRequestsTotal(request.method, path, reply.statusCode);
-      Metrics.httpRequestDuration(request.method, path, duration);
-    });
+        Metrics.httpRequestsTotal(request.method, path, reply.statusCode);
+        Metrics.httpRequestDuration(request.method, path, duration);
+      },
+      () => {
+        // Error case - still record the request
+        const duration = Date.now() - start;
+        const path = request.url.split("?")[0];
+        Metrics.httpRequestsTotal(request.method, path, 500);
+        Metrics.httpRequestDuration(request.method, path, duration);
+      }
+    );
   };
 }

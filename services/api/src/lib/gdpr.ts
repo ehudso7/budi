@@ -1,5 +1,6 @@
 // GDPR compliance utilities
 import prisma from "./db.js";
+import type { Prisma } from "@prisma/client";
 import { getUserAuditLogs, auditDataRequest } from "./audit.js";
 import type { FastifyRequest } from "fastify";
 
@@ -134,11 +135,13 @@ export async function exportUserData(
       currentPeriodEnd: user.currentPeriodEnd,
     },
     invoices: user.invoices,
-    auditLogs: auditLogs.map((log) => ({
-      action: log.action,
-      resource: log.resource,
-      createdAt: log.createdAt,
-    })),
+    auditLogs: auditLogs.map(
+      (log: { action: string; resource: string; createdAt: Date }) => ({
+        action: log.action,
+        resource: log.resource,
+        createdAt: log.createdAt,
+      })
+    ),
     usageRecords: user.usageRecords,
     exportedAt: new Date(),
   };
@@ -179,7 +182,7 @@ export async function deleteUserData(
     ]);
 
   // Delete in correct order (respecting foreign keys)
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Delete tracks (cascade from projects)
     await tx.project.deleteMany({ where: { userId } });
 

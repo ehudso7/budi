@@ -38,7 +38,8 @@ const stripeWebhookRoutes: FastifyPluginAsync = async (app) => {
 
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(request.body, signature, webhookSecret);
+      // stripe is guaranteed non-null since plugin returns early if not configured
+      event = stripe!.webhooks.constructEvent(request.body, signature, webhookSecret);
     } catch (err) {
       request.log.error(err, "Webhook signature verification failed");
       return reply.code(400).send({ error: "Invalid signature" });

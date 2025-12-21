@@ -173,7 +173,10 @@ const observabilityRoutes: FastifyPluginAsync = async (app) => {
           tracks: trackCount,
           jobs: jobCount,
           subscriptions: subscriptionStats.reduce(
-            (acc, s) => ({ ...acc, [s.plan]: s._count }),
+            (acc: Record<string, number>, s: { plan: string; _count: number }) => ({
+              ...acc,
+              [s.plan]: s._count,
+            }),
             {} as Record<string, number>
           ),
         };

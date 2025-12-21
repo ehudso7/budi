@@ -11,7 +11,7 @@ if (!stripeSecretKey && process.env.NODE_ENV === "production") {
 }
 
 export const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2025-04-30.basil" })
+  ? new Stripe(stripeSecretKey, { apiVersion: "2025-12-15.clover" })
   : null;
 
 // Price IDs from Stripe Dashboard (configure in env)
@@ -180,7 +180,9 @@ export async function handleSubscriptionChange(
       subscriptionStatus: status,
       plan,
       trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodEnd: new Date(
+        ((subscription as unknown as { current_period_end: number }).current_period_end || 0) * 1000
+      ),
     },
   });
 
