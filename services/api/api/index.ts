@@ -1,6 +1,6 @@
 // Vercel Serverless Handler for Budi API
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { buildApp } from "../src/app.js";
+import { buildApp } from "../dist/app.js";
 
 // Cache the app instance
 let app: Awaited<ReturnType<typeof buildApp>> | null = null;
