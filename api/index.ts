@@ -2,13 +2,20 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { buildApp } from "../services/api/dist/app.js";
 
-// Cache the app instance
+// Cache the app instance and initialization promise to prevent race conditions
 let app: Awaited<ReturnType<typeof buildApp>> | null = null;
+let appPromise: Promise<Awaited<ReturnType<typeof buildApp>>> | null = null;
 
 async function getApp() {
   if (!app) {
-    app = await buildApp();
-    await app.ready();
+    if (!appPromise) {
+      appPromise = (async () => {
+        const instance = await buildApp();
+        await instance.ready();
+        return instance;
+      })();
+    }
+    app = await appPromise;
   }
   return app;
 }
@@ -25,11 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payload: req.body,
     });
 
-    // Set response headers
+    // Set response headers (handle both string and array values)
     const headers = response.headers;
     for (const [key, value] of Object.entries(headers)) {
       if (value !== undefined) {
-        res.setHeader(key, value as string);
+        res.setHeader(key, value as string | string[]);
       }
     }
 
@@ -39,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error("Handler error:", error);
     res.status(500).json({
       error: "Internal Server Error",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "An unexpected error occurred",
     });
   }
 }

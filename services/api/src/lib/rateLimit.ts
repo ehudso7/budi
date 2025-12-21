@@ -69,7 +69,7 @@ export async function checkRateLimit(
       remaining,
       limit,
       resetAt,
-      retryAfter: allowed ? undefined : Math.ceil((windowStart + windowSeconds * 1000 - now) / 1000),
+      retryAfter: allowed ? undefined : windowSeconds,
     };
   } catch {
     // Redis unavailable - allow request (fail open for availability)
