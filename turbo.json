@@ -4,7 +4,10 @@
     "dev": { "cache": false, "persistent": true },
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", "build/**"] },
     "lint": { "dependsOn": ["^build", "^lint"] },
-    "typecheck": { "dependsOn": ["^build", "^typecheck"] },
+    "typecheck": {
+      "dependsOn": ["^build", "^typecheck"],
+      "inputs": ["src/**", "prisma/**", "tsconfig.json", "package.json"]
+    },
     "test": { "dependsOn": ["^build", "^test"] }
   }
 }
