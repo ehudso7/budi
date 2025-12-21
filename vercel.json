@@ -1,15 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "cd services/api && pnpm run build",
+  "buildCommand": "pnpm turbo run build --filter=@budi/api",
   "installCommand": "pnpm install",
-  "outputDirectory": "services/api",
   "framework": null,
   "functions": {
-    "api/index.ts": {
+    "services/api/api/index.ts": {
       "memory": 1024,
-      "maxDuration": 30,
-      "includeFiles": "dist/**"
+      "maxDuration": 30
     }
   },
   "rewrites": [
