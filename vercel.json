@@ -1,21 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "pnpm turbo run build --filter=@budi/api",
   "installCommand": "pnpm install",
-  "outputDirectory": "public",
-  "framework": null,
-  "functions": {
-    "services/api/api/index.ts": {
-      "memory": 1024,
-      "maxDuration": 30,
-      "includeFiles": "services/api/dist/**"
-    }
-  },
-  "rewrites": [
+  "buildCommand": "pnpm turbo run build --filter=@budi/api",
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/api"
+      "src": "services/api/api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["services/api/dist/**"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/services/api/api/index.ts"
     }
   ]
 }
