@@ -2,6 +2,14 @@
   "name": "@budi/api",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/app.js",
+      "types": "./dist/app.d.ts"
+    }
+  },
+  "main": "./dist/app.js",
+  "types": "./dist/app.d.ts",
   "scripts": {
     "dev": "node --watch --env-file=../../.env ./src/index.ts",
     "worker": "node --env-file=../../.env ./src/worker/index.ts",

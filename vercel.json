@@ -4,11 +4,5 @@
   "installCommand": "pnpm install --no-frozen-lockfile --prod=false",
   "buildCommand": "pnpm --filter @budi/contracts run build && pnpm --filter @budi/api run build && pnpm --filter @budi/web run build",
   "framework": "nextjs",
-  "outputDirectory": "apps/web/.next",
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api"
-    }
-  ]
+  "outputDirectory": "apps/web/.next"
 }
