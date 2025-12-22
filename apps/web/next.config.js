@@ -17,6 +17,17 @@ const nextConfig = {
       "ioredis",
     ],
   },
+  // Externalize @budi/api to prevent webpack from bundling it at build time
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Mark @budi/api and its dependencies as external
+      config.externals = config.externals || [];
+      config.externals.push({
+        "@budi/api": "commonjs @budi/api",
+      });
+    }
+    return config;
+  },
   // Rewrite API calls to external server in development (optional)
   async rewrites() {
     // In production, API is handled by the Next.js API route

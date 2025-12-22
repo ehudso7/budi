@@ -6,8 +6,8 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setUser: (user: User | null) => void;
-  setLoading: (loading: boolean) => void;
+  setUser: (_user: User | null) => void;
+  setLoading: (_loading: boolean) => void;
   logout: () => void;
 }
 
@@ -35,11 +35,11 @@ export const useAuthStore = create<AuthState>()(
 interface ProjectState {
   projects: Project[];
   currentProject: Project | null;
-  setProjects: (projects: Project[]) => void;
-  setCurrentProject: (project: Project | null) => void;
-  addProject: (project: Project) => void;
-  updateProject: (id: string, data: Partial<Project>) => void;
-  removeProject: (id: string) => void;
+  setProjects: (_projects: Project[]) => void;
+  setCurrentProject: (_project: Project | null) => void;
+  addProject: (_project: Project) => void;
+  updateProject: (_id: string, _data: Partial<Project>) => void;
+  removeProject: (_id: string) => void;
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
@@ -70,11 +70,11 @@ export const useProjectStore = create<ProjectState>((set) => ({
 interface TrackState {
   tracks: Track[];
   currentTrack: Track | null;
-  setTracks: (tracks: Track[]) => void;
-  setCurrentTrack: (track: Track | null) => void;
-  addTrack: (track: Track) => void;
-  updateTrack: (id: string, data: Partial<Track>) => void;
-  removeTrack: (id: string) => void;
+  setTracks: (_tracks: Track[]) => void;
+  setCurrentTrack: (_track: Track | null) => void;
+  addTrack: (_track: Track) => void;
+  updateTrack: (_id: string, _data: Partial<Track>) => void;
+  removeTrack: (_id: string) => void;
 }
 
 export const useTrackStore = create<TrackState>((set) => ({
@@ -101,9 +101,9 @@ export const useTrackStore = create<TrackState>((set) => ({
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
-  setNotifications: (notifications: Notification[]) => void;
-  addNotification: (notification: Notification) => void;
-  markAsRead: (id: string) => void;
+  setNotifications: (_notifications: Notification[]) => void;
+  addNotification: (_notification: Notification) => void;
+  markAsRead: (_id: string) => void;
   markAllAsRead: () => void;
 }
 
@@ -137,9 +137,9 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 interface UIState {
   sidebarOpen: boolean;
   theme: "light" | "dark" | "system";
-  setSidebarOpen: (open: boolean) => void;
+  setSidebarOpen: (_open: boolean) => void;
   toggleSidebar: () => void;
-  setTheme: (theme: "light" | "dark" | "system") => void;
+  setTheme: (_theme: "light" | "dark" | "system") => void;
 }
 
 export const useUIStore = create<UIState>()(

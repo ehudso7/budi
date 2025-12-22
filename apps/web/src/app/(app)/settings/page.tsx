@@ -23,7 +23,6 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore, useUIStore } from "@/lib/store";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),

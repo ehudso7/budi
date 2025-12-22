@@ -32,7 +32,7 @@ type EditProjectForm = z.infer<typeof editProjectSchema>;
 interface EditProjectDialogProps {
   project: Project | null;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (_open: boolean) => void;
 }
 
 export function EditProjectDialog({

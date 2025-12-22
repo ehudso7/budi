@@ -6,7 +6,6 @@ import {
   Book,
   MessageCircle,
   Mail,
-  ChevronDown,
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Separator } from "@/components/ui/separator";
 
 const FAQ_ITEMS = [
   {

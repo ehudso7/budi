@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { notificationsApi, type Notification } from "@/lib/api";
+import { notificationsApi } from "@/lib/api";
 import { useNotificationStore } from "@/lib/store";
 import { formatDate, cn } from "@/lib/utils";
 

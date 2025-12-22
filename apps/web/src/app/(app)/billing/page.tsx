@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { billingApi, type Plan } from "@/lib/api";
+import { billingApi } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import { formatCurrency, formatDate, cn } from "@/lib/utils";
 

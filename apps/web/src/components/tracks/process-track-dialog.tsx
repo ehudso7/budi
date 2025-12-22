@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Wand2, Sparkles, Volume2 } from "lucide-react";
+import { Loader2, Wand2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,7 @@ interface ProcessTrackDialogProps {
   track: Track | null;
   projectId: string;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (_open: boolean) => void;
 }
 
 const GENRES = [

@@ -32,7 +32,7 @@ type CreateProjectForm = z.infer<typeof createProjectSchema>;
 
 interface CreateProjectDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (_open: boolean) => void;
 }
 
 export function CreateProjectDialog({
@@ -42,7 +42,7 @@ export function CreateProjectDialog({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { addProject } = useProjectStore();
-  const [navigateToProject, setNavigateToProject] = useState(true);
+  const [navigateToProject] = useState(true);
 
   const {
     register,

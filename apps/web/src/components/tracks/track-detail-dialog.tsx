@@ -15,14 +15,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { tracksApi, type Track, type TrackAnalysis } from "@/lib/api";
-import { formatBytes, formatDuration, cn } from "@/lib/utils";
+import { tracksApi, type Track } from "@/lib/api";
+import { formatBytes, formatDuration } from "@/lib/utils";
 
 interface TrackDetailDialogProps {
   track: Track | null;
   projectId: string;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (_open: boolean) => void;
 }
 
 export function TrackDetailDialog({

@@ -15,8 +15,6 @@ import {
   Wand2,
   Download,
   AlertCircle,
-  CheckCircle,
-  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -45,10 +43,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { projectsApi, tracksApi, type Track } from "@/lib/api";
-import { useProjectStore, useTrackStore } from "@/lib/store";
 import { formatBytes, formatDuration, cn } from "@/lib/utils";
 import { TrackDetailDialog } from "@/components/tracks/track-detail-dialog";
 import { ProcessTrackDialog } from "@/components/tracks/process-track-dialog";
@@ -59,15 +55,9 @@ export default function ProjectDetailPage() {
   const queryClient = useQueryClient();
   const projectId = params.id as string;
 
-  const { setCurrentProject } = useProjectStore();
-  const { setTracks, setCurrentTrack } = useTrackStore();
-
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [processTrack, setProcessTrack] = useState<Track | null>(null);
   const [deleteTrack, setDeleteTrack] = useState<Track | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
-    {}
-  );
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
 
   const { data: projectData, isLoading: projectLoading } = useQuery({
