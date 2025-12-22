@@ -4,11 +4,12 @@ const nextConfig = {
   images: {
     domains: ["localhost"],
   },
-  // Transpile workspace packages for Next.js
-  transpilePackages: ["@budi/api", "@budi/contracts"],
+  // Transpile workspace packages for Next.js (only contracts, API uses dynamic import)
+  transpilePackages: ["@budi/contracts"],
   // Mark Node.js-specific packages as external to prevent bundling issues
   experimental: {
     serverComponentsExternalPackages: [
+      "@budi/api",
       "fastify",
       "@fastify/cors",
       "@fastify/jwt",
