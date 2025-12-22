@@ -2,7 +2,7 @@
 # Security-Focused Scan Script
 # Run: ./scripts/audit/security-scan.sh
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -87,6 +87,7 @@ NOAUTH=$(grep -rn "app\.\(get\|post\|put\|delete\)" --include="*.ts" services/ 2
 if [ -n "$NOAUTH" ]; then
     echo -e "${YELLOW}[MEDIUM] Routes to review for auth:${NC}"
     echo "$NOAUTH"
+    ((ISSUES++))
 fi
 
 echo ""

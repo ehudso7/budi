@@ -6,7 +6,6 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-REPORT_FILE="$PROJECT_ROOT/AUDIT_REPORT.md"
 
 echo "========================================"
 echo "  Budi Full Codebase Audit"

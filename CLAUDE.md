@@ -14,7 +14,7 @@ Budi is a professional audio mastering platform that uses AI-powered DSP workers
 
 ## Repository Structure
 
-```
+```text
 budi/
 ├── apps/
 │   └── web/              # Next.js frontend

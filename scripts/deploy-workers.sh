@@ -5,7 +5,6 @@
 set -e
 
 # Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
@@ -30,35 +29,36 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-echo ""
-echo -e "${GREEN}Step 1: Setting up DSP Worker${NC}"
-echo "--------------------------------"
+# Deploy a worker to Railway
+# Usage: deploy_worker <worker_dir> <project_name> <step_number>
+deploy_worker() {
+    local worker_dir="$1"
+    local project_name="$2"
+    local step_num="$3"
 
-cd "$PROJECT_ROOT/services/worker-dsp"
+    echo ""
+    echo -e "${GREEN}Step ${step_num}: Setting up ${project_name}${NC}"
+    echo "--------------------------------"
 
-# Check if Railway project exists for DSP worker
-if [ ! -f ".railway/config.json" ]; then
-    echo -e "${YELLOW}Creating new Railway project for DSP Worker...${NC}"
-    railway init --name budi-worker-dsp
-fi
+    cd "$PROJECT_ROOT/services/${worker_dir}"
 
-echo -e "${GREEN}Deploying DSP Worker...${NC}"
-railway up --detach
+    # Check if Railway project exists for this worker
+    if [ ! -f ".railway/config.json" ]; then
+        echo -e "${YELLOW}Creating new Railway project for ${project_name}...${NC}"
+        # Note: --name flag creates the project. For fully non-interactive usage,
+        # set RAILWAY_TOKEN env var or run 'railway login' first.
+        railway init --name "budi-${worker_dir}"
+    fi
 
-echo ""
-echo -e "${GREEN}Step 2: Setting up Codec Worker${NC}"
-echo "---------------------------------"
+    echo -e "${GREEN}Deploying ${project_name}...${NC}"
+    railway up --detach
 
-cd "$PROJECT_ROOT/services/worker-codec"
+    cd "$PROJECT_ROOT"
+}
 
-# Check if Railway project exists for Codec worker
-if [ ! -f ".railway/config.json" ]; then
-    echo -e "${YELLOW}Creating new Railway project for Codec Worker...${NC}"
-    railway init --name budi-worker-codec
-fi
-
-echo -e "${GREEN}Deploying Codec Worker...${NC}"
-railway up --detach
+# Deploy workers
+deploy_worker "worker-dsp" "DSP Worker" "1"
+deploy_worker "worker-codec" "Codec Worker" "2"
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
