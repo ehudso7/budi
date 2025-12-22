@@ -1,0 +1,10 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "./worker-dsp"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "always"
+restartPolicyMaxRetries = 3

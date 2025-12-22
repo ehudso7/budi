@@ -23,9 +23,13 @@ export async function buildApp() {
     },
   });
 
-  // Register CORS
+  // Register CORS - SECURITY: CORS_ORIGIN must be set in production
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (!corsOrigin && process.env.NODE_ENV === "production") {
+    console.warn("WARNING: CORS_ORIGIN not set in production. This allows any origin!");
+  }
   await app.register(cors, {
-    origin: process.env.CORS_ORIGIN || true,
+    origin: corsOrigin || true,
     credentials: true,
   });
 

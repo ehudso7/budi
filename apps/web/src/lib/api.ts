@@ -1,5 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+// Token storage key - using sessionStorage for improved security
+// SECURITY NOTE: For production, consider implementing httpOnly cookies via the backend
+// to fully protect tokens from XSS attacks. sessionStorage is better than localStorage
+// as it clears on tab close, but httpOnly cookies are the most secure option.
+const TOKEN_STORAGE_KEY = "auth_token";
+
 interface ApiError {
   message: string;
   code?: string;
@@ -18,9 +24,13 @@ class ApiClient {
     this.token = token;
     if (typeof window !== "undefined") {
       if (token) {
-        localStorage.setItem("auth_token", token);
+        // Using sessionStorage instead of localStorage for improved security
+        // Session storage clears on tab close, limiting token exposure window
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
       } else {
-        localStorage.removeItem("auth_token");
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+        // Also clear any legacy localStorage tokens
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
       }
     }
   }
@@ -28,7 +38,13 @@ class ApiClient {
   getToken(): string | null {
     if (this.token) return this.token;
     if (typeof window !== "undefined") {
-      this.token = localStorage.getItem("auth_token");
+      // Check sessionStorage first, fall back to localStorage for migration
+      this.token = sessionStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem(TOKEN_STORAGE_KEY);
+      // Migrate localStorage token to sessionStorage
+      if (this.token && localStorage.getItem(TOKEN_STORAGE_KEY)) {
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, this.token);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+      }
     }
     return this.token;
   }

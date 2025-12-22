@@ -22,8 +22,17 @@ declare module "@fastify/jwt" {
  * Register JWT authentication plugin
  */
 export async function registerAuth(app: FastifyInstance): Promise<void> {
+  // SECURITY: JWT_SECRET must be set in production - fail fast if missing
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: JWT_SECRET environment variable must be set in production");
+    }
+    console.warn("WARNING: JWT_SECRET not set. Using insecure development secret. DO NOT USE IN PRODUCTION!");
+  }
+
   await app.register(import("@fastify/jwt"), {
-    secret: process.env.JWT_SECRET || "budi-dev-secret",
+    secret: jwtSecret || "budi-dev-secret-DO-NOT-USE-IN-PROD",
   });
 
   // Add authentication decorator

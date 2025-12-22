@@ -12,12 +12,19 @@ import type {
 } from "@budi/contracts";
 
 const webhookRoutes: FastifyPluginAsync = async (app) => {
-  // Verify webhook secret (simple shared secret for worker auth)
-  const webhookSecret = process.env.WEBHOOK_SECRET || "budi-webhook-secret";
+  // SECURITY: WEBHOOK_SECRET must be set - fail fast if missing in production
+  const configuredSecret = process.env.WEBHOOK_SECRET;
+  if (!configuredSecret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: WEBHOOK_SECRET environment variable must be set in production");
+    }
+    app.log.warn("WARNING: WEBHOOK_SECRET not set. Using insecure development secret.");
+  }
+  const webhookSecret = configuredSecret || "budi-dev-webhook-DO-NOT-USE-IN-PROD";
 
   app.addHook("preHandler", async (request, reply) => {
-    const secret = request.headers["x-webhook-secret"];
-    if (secret !== webhookSecret) {
+    const providedSecret = request.headers["x-webhook-secret"];
+    if (providedSecret !== webhookSecret) {
       return reply.code(401).send({ error: "Invalid webhook secret" });
     }
   });
