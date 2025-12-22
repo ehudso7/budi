@@ -14,6 +14,6 @@
   "devDependencies": {
     "turbo": "^2.3.0",
     "@vercel/node": "^5.0.0",
-    "next": "14.2.15"
+    "next": "14.2.35"
   }
 }
