@@ -156,58 +156,61 @@ export default function BillingPage() {
       </Card>
 
       {/* Usage */}
-      {usage && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Usage This Period</CardTitle>
-            <CardDescription>
-              Your current usage for this billing period
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {usageLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Usage This Period</CardTitle>
+          <CardDescription>
+            Your current usage for this billing period
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {usageLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+          ) : usage ? (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Tracks Processed</span>
+                  <span className="font-medium">
+                    {usage.tracksProcessed} / {usage.tracksLimit}
+                  </span>
+                </div>
+                <Progress
+                  value={usage.tracksLimit > 0 ? (usage.tracksProcessed / usage.tracksLimit) * 100 : 0}
+                  className="h-2"
+                />
               </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Tracks Processed</span>
-                    <span className="font-medium">
-                      {usage.tracksProcessed} / {usage.tracksLimit}
-                    </span>
-                  </div>
-                  <Progress
-                    value={(usage.tracksProcessed / usage.tracksLimit) * 100}
-                    className="h-2"
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Storage Used</span>
+                  <span className="font-medium">
+                    {(usage.storageUsed / 1024 / 1024 / 1024).toFixed(1)} GB /{" "}
+                    {usage.storageLimit} GB
+                  </span>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Storage Used</span>
-                    <span className="font-medium">
-                      {(usage.storageUsed / 1024 / 1024 / 1024).toFixed(1)} GB /{" "}
-                      {usage.storageLimit} GB
-                    </span>
-                  </div>
-                  <Progress
-                    value={
-                      (usage.storageUsed / 1024 / 1024 / 1024 / usage.storageLimit) *
-                      100
-                    }
-                    className="h-2"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Period ends on {formatDate(usage.periodEnd)}
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                <Progress
+                  value={
+                    usage.storageLimit > 0
+                      ? (usage.storageUsed / 1024 / 1024 / 1024 / usage.storageLimit) * 100
+                      : 0
+                  }
+                  className="h-2"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Period ends on {formatDate(usage.periodEnd)}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No usage data available
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Plans */}
       <div>

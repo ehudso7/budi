@@ -73,7 +73,7 @@ export default function DashboardPage() {
     },
     {
       name: "Processing Credits",
-      value: usage ? `${usage.tracksLimit - usage.tracksProcessed}` : "0",
+      value: usage ? `${Math.max(0, usage.tracksLimit - usage.tracksProcessed)}` : "0",
       icon: Zap,
       color: "text-yellow-500",
       bgColor: "bg-yellow-500/10",
@@ -147,7 +147,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <Progress
-                    value={(usage.tracksProcessed / usage.tracksLimit) * 100}
+                    value={usage.tracksLimit > 0 ? (usage.tracksProcessed / usage.tracksLimit) * 100 : 0}
                     className="h-2"
                   />
                 </div>
@@ -161,12 +161,9 @@ export default function DashboardPage() {
                   </div>
                   <Progress
                     value={
-                      (usage.storageUsed /
-                        1024 /
-                        1024 /
-                        1024 /
-                        usage.storageLimit) *
-                      100
+                      usage.storageLimit > 0
+                        ? (usage.storageUsed / 1024 / 1024 / 1024 / usage.storageLimit) * 100
+                        : 0
                     }
                     className="h-2"
                   />
