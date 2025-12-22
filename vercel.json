@@ -1,15 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "framework": "nextjs",
-  "buildCommand": "pnpm --filter @budi/contracts run build && pnpm --filter @budi/api run build && cd apps/web && pnpm run build",
+  "buildCommand": "pnpm --filter @budi/contracts run build && pnpm --filter @budi/api run build && pnpm --filter @budi/web run build",
   "installCommand": "pnpm install --no-frozen-lockfile --prod=false",
-  "outputDirectory": "./apps/web/.next",
+  "outputDirectory": "apps/web/.next",
   "functions": {
     "api/index.ts": {
       "memory": 1024,
       "maxDuration": 30,
-      "includeFiles": "./packages/contracts/dist/**,./services/api/dist/**,./services/api/generated/**,./services/api/prisma/**"
+      "includeFiles": "packages/contracts/dist/**,services/api/dist/**,services/api/generated/**,services/api/prisma/**"
     }
   },
   "rewrites": [
