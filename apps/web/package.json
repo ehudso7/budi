@@ -49,6 +49,8 @@
     "wavesurfer.js": "^7.8.6"
   },
   "devDependencies": {
+    "@budi/api": "workspace:*",
+    "@budi/contracts": "workspace:*",
     "@types/node": "^22.7.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",

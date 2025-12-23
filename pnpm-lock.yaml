@@ -121,6 +121,12 @@ importers:
         specifier: ^5.0.0
         version: 5.0.9(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
+      '@budi/api':
+        specifier: workspace:*
+        version: link:../../services/api
+      '@budi/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@playwright/test':
         specifier: ^1.49.1
         version: 1.57.0
