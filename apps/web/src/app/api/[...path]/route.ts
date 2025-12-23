@@ -40,7 +40,9 @@ async function handler(req: NextRequest) {
 
     // Get the path from the URL
     const url = new URL(req.url);
-    const apiPath = url.pathname;
+    // Strip the /api prefix since Fastify routes don't include it
+    // Frontend calls /api/v1/... but Fastify routes are at /v1/...
+    const apiPath = url.pathname.replace(/^\/api/, "");
 
     // Convert headers to a plain object
     const headers: Record<string, string> = {};

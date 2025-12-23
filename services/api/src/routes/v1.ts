@@ -1,7 +1,9 @@
 // V1 API Routes with full persistence
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { nanoid } from "nanoid";
+import bcrypt from "bcryptjs";
 import prisma from "../lib/db.js";
+import { generateToken } from "../lib/auth.js";
 import { enqueueJob, QUEUES } from "../lib/redis.js";
 import { getUploadUrl, getDownloadUrl, BUCKETS, generateKey, getInternalUrl } from "../lib/s3.js";
 import {
@@ -23,6 +25,9 @@ import type {
   ExportJob,
 } from "@budi/contracts";
 
+// Password hashing constants
+const BCRYPT_SALT_ROUNDS = 12;
+
 // Generate prefixed IDs
 function generateId(prefix: string): string {
   return `${prefix}${nanoid(16)}`;
@@ -41,24 +46,76 @@ const v1Routes: FastifyPluginAsync = async (app) => {
   // ============================================================================
 
   /** Register a new user */
-  app.post<{ Body: { email: string; name?: string } }>(
+  app.post<{ Body: { email: string; password: string; name?: string } }>(
     "/v1/auth/register",
     async (request, reply) => {
-      const { email, name } = request.body;
+      const { email, password, name } = request.body;
+
+      // Validate required fields
+      if (!email || !password) {
+        return reply.code(400).send({ error: "Email and password are required" });
+      }
+
+      // Check password strength
+      if (password.length < 8) {
+        return reply.code(400).send({ error: "Password must be at least 8 characters" });
+      }
 
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) {
         return reply.code(409).send({ error: "User already exists" });
       }
 
+      // Hash password before storing
+      const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+
       const user = await prisma.user.create({
-        data: { email, name },
+        data: { email, name, passwordHash },
         select: { id: true, email: true, name: true, apiKey: true },
       });
 
+      // Generate JWT token for the new user
+      const token = generateToken(app, { id: user.id, email: user.email, name: user.name });
+
       reply.code(201).send({
         user: { id: user.id, email: user.email, name: user.name },
-        apiKey: user.apiKey,
+        token,
+      });
+    }
+  );
+
+  /** Login with email and password */
+  app.post<{ Body: { email: string; password: string } }>(
+    "/v1/auth/login",
+    async (request, reply) => {
+      const { email, password } = request.body;
+
+      // Validate required fields
+      if (!email || !password) {
+        return reply.code(400).send({ error: "Email and password are required" });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, email: true, name: true, passwordHash: true },
+      });
+
+      if (!user || !user.passwordHash) {
+        return reply.code(401).send({ error: "Invalid email or password" });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return reply.code(401).send({ error: "Invalid email or password" });
+      }
+
+      // Generate JWT token
+      const token = generateToken(app, { id: user.id, email: user.email, name: user.name });
+
+      reply.send({
+        user: { id: user.id, email: user.email, name: user.name },
+        token,
       });
     }
   );
