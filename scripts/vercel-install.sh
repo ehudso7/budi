@@ -2,39 +2,41 @@
 # Vercel install script - runs during the install phase
 
 echo "=== Starting Vercel install script ==="
+echo "Current directory: $(pwd)"
+echo "Node version: $(node --version)"
+echo "PNPM version: $(pnpm --version || echo 'pnpm not found')"
 
 # Install dependencies
 echo "Installing dependencies..."
-pnpm install --no-frozen-lockfile --prod=false
-if [ $? -ne 0 ]; then
+pnpm install --no-frozen-lockfile --prod=false || {
   echo "ERROR: pnpm install failed"
   exit 1
-fi
+}
 
 # Build contracts (shared types)
 echo "Building contracts..."
-pnpm --filter @budi/contracts run build
-if [ $? -ne 0 ]; then
+pnpm --filter @budi/contracts run build || {
   echo "ERROR: contracts build failed"
   exit 1
-fi
+}
 
 # Push database schema (skip if DATABASE_URL not set or fails)
 echo "Attempting Prisma db push..."
-cd services/api
-if pnpm prisma db push --skip-generate; then
-  echo "Prisma db push succeeded"
-else
-  echo "Prisma db push skipped (DATABASE_URL may not be configured)"
-fi
-cd ../..
+cd services/api || {
+  echo "ERROR: Could not change to services/api directory"
+  exit 1
+}
+pnpm prisma db push --skip-generate || echo "Prisma db push skipped or failed (non-critical)"
+cd ../.. || {
+  echo "ERROR: Could not return to root directory"
+  exit 1
+}
 
 # Build API
 echo "Building API..."
-pnpm --filter @budi/api run build
-if [ $? -ne 0 ]; then
+pnpm --filter @budi/api run build || {
   echo "ERROR: API build failed"
   exit 1
-fi
+}
 
 echo "=== Vercel install script completed ==="
