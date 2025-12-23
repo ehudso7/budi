@@ -25,8 +25,12 @@ import type {
   ExportJob,
 } from "@budi/contracts";
 
+import { rateLimitHandler } from "../middleware/rateLimiter.js";
+
 // Password hashing constants
 const BCRYPT_SALT_ROUNDS = 12;
+// bcrypt truncates passwords at 72 bytes - enforce this limit
+const MAX_PASSWORD_LENGTH = 72;
 
 // Generate prefixed IDs
 function generateId(prefix: string): string {
@@ -56,9 +60,12 @@ const v1Routes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Email and password are required" });
       }
 
-      // Check password strength
+      // Check password strength and length
       if (password.length < 8) {
         return reply.code(400).send({ error: "Password must be at least 8 characters" });
+      }
+      if (password.length > MAX_PASSWORD_LENGTH) {
+        return reply.code(400).send({ error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters` });
       }
 
       const existing = await prisma.user.findUnique({ where: { email } });
@@ -87,12 +94,18 @@ const v1Routes: FastifyPluginAsync = async (app) => {
   /** Login with email and password */
   app.post<{ Body: { email: string; password: string } }>(
     "/v1/auth/login",
+    { preHandler: [rateLimitHandler] },
     async (request, reply) => {
       const { email, password } = request.body;
 
       // Validate required fields
       if (!email || !password) {
         return reply.code(400).send({ error: "Email and password are required" });
+      }
+
+      // Validate password length (bcrypt truncates at 72 bytes)
+      if (password.length > MAX_PASSWORD_LENGTH) {
+        return reply.code(400).send({ error: "Invalid email or password" });
       }
 
       const user = await prisma.user.findUnique({
