@@ -3,6 +3,6 @@
   "version": 2,
   "installCommand": "pnpm install --no-frozen-lockfile --prod=false && pnpm --filter @budi/contracts run build && pnpm --filter @budi/api run build",
   "buildCommand": "pnpm --filter @budi/web run build",
-  "outputDirectory": "apps/web/.next",
+  "outputDirectory": "../../apps/web/.next",
   "framework": "nextjs"
 }
