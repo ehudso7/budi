@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+// Use relative URLs by default since API routes are on the same origin
+// Only set NEXT_PUBLIC_API_URL if you need to point to a different backend
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 // Token storage key - using sessionStorage for improved security
 // SECURITY NOTE: For production, consider implementing httpOnly cookies via the backend
