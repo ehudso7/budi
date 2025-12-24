@@ -8,6 +8,7 @@ import { enqueueJob, QUEUES } from "../lib/redis.js";
 import { getUploadUrl, getDownloadUrl, BUCKETS, generateKey, getInternalUrl } from "../lib/s3.js";
 import {
   createProjectSchema,
+  updateProjectSchema,
   importTrackSchema,
   fixTrackSchema,
   masterTrackSchema,
@@ -183,7 +184,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
   // ============================================================================
 
   /** Create a new project */
-  app.post<{ Body: { name: string; type?: string } }>(
+  app.post<{ Body: { name: string; description?: string; type?: string } }>(
     "/v1/projects",
     { preHandler: [app.authenticate] },
     async (request, reply) => {
@@ -192,13 +193,14 @@ const v1Routes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Validation failed", details: parsed.error.issues });
       }
 
-      const { name, type } = parsed.data;
+      const { name, description, type } = parsed.data;
       const id = generateId("proj_");
 
       const project = await prisma.project.create({
         data: {
           id,
           name,
+          description,
           type: type === "album" ? "ALBUM" : "SINGLE",
           userId: request.userId!,
         },
@@ -206,12 +208,16 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       });
 
       reply.code(201).send({
-        id: project.id,
-        name: project.name,
-        type: project.type.toLowerCase(),
-        status: project.status.toLowerCase(),
-        tracks: [],
-        createdAt: project.createdAt,
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          type: project.type.toLowerCase(),
+          status: project.status.toLowerCase(),
+          trackCount: 0,
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
+        },
       });
     }
   );
@@ -235,6 +241,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
         projects: projects.map((p: (typeof projects)[number]) => ({
           id: p.id,
           name: p.name,
+          description: p.description,
           type: p.type.toLowerCase(),
           status: p.status.toLowerCase(),
           trackCount: p.tracks.length,
@@ -270,20 +277,153 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       }
 
       reply.send({
-        id: project.id,
-        name: project.name,
-        type: project.type.toLowerCase(),
-        status: project.status.toLowerCase(),
-        tracks: project.tracks.map((t: (typeof project.tracks)[number]) => ({
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          type: project.type.toLowerCase(),
+          status: project.status.toLowerCase(),
+          trackCount: project.tracks.length,
+          tracks: project.tracks.map((t: (typeof project.tracks)[number]) => ({
+            id: t.id,
+            name: t.name,
+            status: t.status.toLowerCase(),
+            orderIndex: t.orderIndex,
+            hasAnalysis: !!t.analysisReport,
+            hasMaster: t.masters.length > 0,
+          })),
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
+        },
+      });
+    }
+  );
+
+  /** Update a project */
+  app.patch<{ Params: { projectId: string }; Body: { name?: string; description?: string } }>(
+    "/v1/projects/:projectId",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { projectId } = request.params;
+      const parsed = updateProjectSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Validation failed", details: parsed.error.issues });
+      }
+
+      const { name, description } = parsed.data;
+
+      // Check if project exists and belongs to user
+      const existingProject = await prisma.project.findFirst({
+        where: { id: projectId, userId: request.userId },
+      });
+
+      if (!existingProject) {
+        return reply.code(404).send({ error: "Project not found" });
+      }
+
+      const project = await prisma.project.update({
+        where: { id: projectId },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(description !== undefined && { description }),
+        },
+        include: { tracks: true },
+      });
+
+      reply.send({
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          type: project.type.toLowerCase(),
+          status: project.status.toLowerCase(),
+          trackCount: project.tracks.length,
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
+        },
+      });
+    }
+  );
+
+  /** Delete a project */
+  app.delete<{ Params: { projectId: string } }>(
+    "/v1/projects/:projectId",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { projectId } = request.params;
+
+      // Check if project exists and belongs to user
+      const existingProject = await prisma.project.findFirst({
+        where: { id: projectId, userId: request.userId },
+      });
+
+      if (!existingProject) {
+        return reply.code(404).send({ error: "Project not found" });
+      }
+
+      // Delete project (cascades to tracks, exports, etc.)
+      await prisma.project.delete({
+        where: { id: projectId },
+      });
+
+      reply.code(204).send();
+    }
+  );
+
+  /** List tracks in a project */
+  app.get<{ Params: { projectId: string } }>(
+    "/v1/projects/:projectId/tracks",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { projectId } = request.params;
+
+      // Check if project exists and belongs to user
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, userId: request.userId },
+      });
+
+      if (!project) {
+        return reply.code(404).send({ error: "Project not found" });
+      }
+
+      const tracks = await prisma.track.findMany({
+        where: { projectId },
+        include: {
+          analysisReport: true,
+          masters: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+        orderBy: { orderIndex: "asc" },
+      });
+
+      reply.send({
+        tracks: tracks.map((t: (typeof tracks)[number]) => ({
           id: t.id,
           name: t.name,
-          status: t.status.toLowerCase(),
-          orderIndex: t.orderIndex,
-          hasAnalysis: !!t.analysisReport,
-          hasMaster: t.masters.length > 0,
+          originalFileName: t.name,
+          fileSize: 0, // Not tracked in current schema
+          duration: t.analysisReport?.durationSecs || 0,
+          sampleRate: t.analysisReport?.sampleRate || 44100,
+          bitDepth: t.analysisReport?.bitDepth || 16,
+          channels: t.analysisReport?.channels || 2,
+          format: "wav",
+          waveformUrl: null,
+          status: t.status.toLowerCase() === "analyzed" || t.status.toLowerCase() === "mastered" ? "ready" : t.status.toLowerCase(),
+          analysis: t.analysisReport ? {
+            lufs: t.analysisReport.integratedLufs,
+            truePeak: t.analysisReport.truePeak,
+            dynamicRange: t.analysisReport.loudnessRange,
+            issues: [
+              ...(t.analysisReport.hasClipping ? [{ type: "clipping", severity: "high" as const, description: "Audio clipping detected" }] : []),
+              ...(t.analysisReport.hasDcOffset ? [{ type: "dc_offset", severity: "medium" as const, description: "DC offset detected" }] : []),
+            ],
+            spectralAnalysis: {
+              lowEnd: 0,
+              midRange: 0,
+              highEnd: 0,
+            },
+          } : null,
+          createdAt: t.createdAt.toISOString(),
         })),
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
       });
     }
   );

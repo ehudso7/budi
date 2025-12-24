@@ -23,7 +23,13 @@ export const jobIdParamSchema = z.object({
 
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(255),
+  description: z.string().max(500).optional(),
   type: z.enum(["single", "album"]).default("single"),
+});
+
+export const updateProjectSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(500).optional(),
 });
 
 // ============================================================================
@@ -141,6 +147,7 @@ export const loginSchema = z.object({
 // ============================================================================
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 export type ImportTrackInput = z.infer<typeof importTrackSchema>;
 export type FixTrackInput = z.infer<typeof fixTrackSchema>;
 export type MasterTrackInput = z.infer<typeof masterTrackSchema>;

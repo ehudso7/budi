@@ -173,14 +173,15 @@ enum DLQStatus {
 
 // Project container (single track or album)
 model Project {
-  id          String       @id
+  id          String        @id
   userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
-  type        ProjectType  @default(SINGLE)
+  description String?       // Optional project description
+  type        ProjectType   @default(SINGLE)
   status      ProjectStatus @default(CREATED)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   tracks      Track[]
   exports     Export[]
 
