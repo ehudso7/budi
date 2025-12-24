@@ -78,14 +78,22 @@ const v1Routes: FastifyPluginAsync = async (app) => {
 
       const user = await prisma.user.create({
         data: { email, name, passwordHash },
-        select: { id: true, email: true, name: true, apiKey: true },
+        select: { id: true, email: true, name: true, apiKey: true, plan: true, subscriptionStatus: true },
       });
 
       // Generate JWT token for the new user
       const token = generateToken(app, { id: user.id, email: user.email, name: user.name });
 
       reply.code(201).send({
-        user: { id: user.id, email: user.email, name: user.name },
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          subscription: {
+            plan: user.plan,
+            status: user.subscriptionStatus,
+          },
+        },
         token,
       });
     }
@@ -110,7 +118,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
 
       const user = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, email: true, name: true, passwordHash: true },
+        select: { id: true, email: true, name: true, passwordHash: true, plan: true, subscriptionStatus: true },
       });
 
       if (!user || !user.passwordHash) {
@@ -127,7 +135,15 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       const token = generateToken(app, { id: user.id, email: user.email, name: user.name });
 
       reply.send({
-        user: { id: user.id, email: user.email, name: user.name },
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          subscription: {
+            plan: user.plan,
+            status: user.subscriptionStatus,
+          },
+        },
         token,
       });
     }
@@ -138,7 +154,27 @@ const v1Routes: FastifyPluginAsync = async (app) => {
     "/v1/auth/me",
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      reply.send({ user: request.user });
+      const userId = request.userId!;
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, name: true, plan: true, subscriptionStatus: true },
+      });
+
+      if (!user) {
+        return reply.code(404).send({ error: "User not found" });
+      }
+
+      reply.send({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          subscription: {
+            plan: user.plan,
+            status: user.subscriptionStatus,
+          },
+        },
+      });
     }
   );
 

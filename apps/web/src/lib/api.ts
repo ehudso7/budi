@@ -206,9 +206,15 @@ export const billingApi = {
     api.get<{ subscription: Subscription | null }>("/api/v1/billing/subscription"),
   getPlans: () => api.get<{ plans: Plan[] }>("/api/v1/billing/plans"),
   createCheckout: (priceId: string) =>
-    api.post<{ url: string }>("/api/v1/billing/checkout", { priceId }),
+    api.post<{ url: string }>("/api/v1/billing/checkout", {
+      priceId,
+      successUrl: `${window.location.origin}/billing?success=true`,
+      cancelUrl: `${window.location.origin}/billing?canceled=true`,
+    }),
   createPortal: () =>
-    api.post<{ url: string }>("/api/v1/billing/portal"),
+    api.post<{ url: string }>("/api/v1/billing/portal", {
+      returnUrl: `${window.location.origin}/billing`,
+    }),
   getUsage: () => api.get<{ usage: Usage }>("/api/v1/billing/usage"),
 };
 

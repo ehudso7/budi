@@ -69,7 +69,8 @@ export default function BillingPage() {
   const plans = plansData?.plans || [];
   const usage = usageData?.usage;
 
-  const currentPlan = user?.subscription?.plan || "free";
+  // Use subscription from API (most accurate), fallback to auth store, then default to "free"
+  const currentPlan = subscription?.plan || user?.subscription?.plan || "free";
 
   const getPlanIcon = (planName: string) => {
     switch (planName.toLowerCase()) {
@@ -283,13 +284,17 @@ export default function BillingPage() {
                     <Button
                       className="w-full"
                       variant={isCurrentPlan ? "outline" : "default"}
-                      disabled={isCurrentPlan || checkoutMutation.isPending}
-                      onClick={() => checkoutMutation.mutate(plan.id)}
+                      disabled={isCurrentPlan || checkoutMutation.isPending || !plan.priceIds}
+                      onClick={() => {
+                        if (plan.priceIds?.monthly) {
+                          checkoutMutation.mutate(plan.priceIds.monthly);
+                        }
+                      }}
                     >
                       {checkoutMutation.isPending && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      {isCurrentPlan ? "Current Plan" : "Upgrade"}
+                      {isCurrentPlan ? "Current Plan" : plan.priceIds ? "Upgrade" : "Free"}
                     </Button>
                   </CardFooter>
                 </Card>
