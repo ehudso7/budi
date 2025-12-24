@@ -21,9 +21,10 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Mark @budi/api and its dependencies as external
+      // Use 'module' instead of 'commonjs' since @budi/api is an ES module
       config.externals = config.externals || [];
       config.externals.push({
-        "@budi/api": "commonjs @budi/api",
+        "@budi/api": "module @budi/api",
       });
     }
     return config;
