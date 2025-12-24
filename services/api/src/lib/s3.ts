@@ -13,6 +13,9 @@ const endpoint = process.env.MINIO_ENDPOINT || "http://localhost:9000";
 const accessKeyId = process.env.MINIO_ACCESS_KEY || "minioadmin";
 const secretAccessKey = process.env.MINIO_SECRET_KEY || "minioadmin";
 
+// Auto-detect if using Cloudflare R2
+const isCloudflareR2 = endpoint.includes(".r2.cloudflarestorage.com");
+
 /**
  * Check if S3/MinIO is properly configured for production use
  */
@@ -31,22 +34,23 @@ export function isS3Configured(): boolean {
 /**
  * Get S3 configuration status for debugging
  */
-export function getS3ConfigStatus(): { configured: boolean; endpoint: string; hasCredentials: boolean } {
+export function getS3ConfigStatus(): { configured: boolean; endpoint: string; hasCredentials: boolean; provider: string } {
   return {
     configured: isS3Configured(),
     endpoint: endpoint.replace(/\/\/.*:.*@/, "//***:***@"), // Hide credentials if in URL
     hasCredentials: !!(process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY),
+    provider: isCloudflareR2 ? "cloudflare-r2" : endpoint.includes("amazonaws.com") ? "aws-s3" : "minio",
   };
 }
 
 export const s3Client = new S3Client({
   endpoint,
-  region: "us-east-1", // MinIO requires a region but doesn't use it
+  region: isCloudflareR2 ? "auto" : "us-east-1",
   credentials: {
     accessKeyId,
     secretAccessKey,
   },
-  forcePathStyle: true, // Required for MinIO
+  forcePathStyle: !isCloudflareR2, // R2 prefers virtual-hosted style, MinIO requires path style
 });
 
 export const BUCKETS = {
