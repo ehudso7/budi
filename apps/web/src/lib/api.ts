@@ -331,6 +331,10 @@ export interface Plan {
     tracksPerMonth: number;
     storageGb: number;
   };
+  priceIds: {
+    monthly: string;
+    yearly: string;
+  } | null;
 }
 
 export interface Usage {
