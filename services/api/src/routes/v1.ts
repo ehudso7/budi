@@ -400,12 +400,12 @@ const v1Routes: FastifyPluginAsync = async (app) => {
           id: t.id,
           name: t.name,
           originalFileName: t.name,
-          fileSize: 0, // Not tracked in current schema
-          duration: t.analysisReport?.durationSecs || 0,
-          sampleRate: t.analysisReport?.sampleRate || 44100,
-          bitDepth: t.analysisReport?.bitDepth || 16,
-          channels: t.analysisReport?.channels || 2,
-          format: "wav",
+          fileSize: null, // Not tracked in current schema
+          duration: t.analysisReport?.durationSecs ?? null,
+          sampleRate: t.analysisReport?.sampleRate ?? null,
+          bitDepth: t.analysisReport?.bitDepth ?? null,
+          channels: t.analysisReport?.channels ?? null,
+          format: null, // Format detection not implemented
           waveformUrl: null,
           status: t.status.toLowerCase() === "analyzed" || t.status.toLowerCase() === "mastered" ? "ready" : t.status.toLowerCase(),
           analysis: t.analysisReport ? {
@@ -416,11 +416,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
               ...(t.analysisReport.hasClipping ? [{ type: "clipping", severity: "high" as const, description: "Audio clipping detected" }] : []),
               ...(t.analysisReport.hasDcOffset ? [{ type: "dc_offset", severity: "medium" as const, description: "DC offset detected" }] : []),
             ],
-            spectralAnalysis: {
-              lowEnd: 0,
-              midRange: 0,
-              highEnd: 0,
-            },
+            spectralAnalysis: null, // Not computed
           } : null,
           createdAt: t.createdAt.toISOString(),
         })),
