@@ -11,9 +11,99 @@ import prisma from "../lib/db.js";
 import { getUsageStatus } from "../lib/planLimits.js";
 
 const billingRoutes: FastifyPluginAsync = async (app) => {
-  // Check if Stripe is configured
+  /**
+   * Get available plans and pricing - always available (doesn't require Stripe)
+   */
+  app.get("/api/v1/billing/plans", async () => {
+    return {
+      plans: [
+        {
+          id: "FREE",
+          name: "Free",
+          price: 0,
+          interval: "month",
+          priceIds: null,
+          features: [
+            "Basic audio mastering",
+            "Standard queue priority",
+            "Community support",
+          ],
+          limits: {
+            projects: 3,
+            tracksPerMonth: 10,
+            storageGb: 1,
+          },
+        },
+        {
+          id: "PRO",
+          name: "Pro",
+          price: 19,
+          interval: "month",
+          priceIds: {
+            monthly: PRICE_IDS.PRO_MONTHLY,
+            yearly: PRICE_IDS.PRO_YEARLY,
+          },
+          features: [
+            "Advanced audio mastering",
+            "Priority queue",
+            "HD exports (24-bit)",
+            "Email support",
+          ],
+          limits: {
+            projects: 25,
+            tracksPerMonth: 100,
+            storageGb: 50,
+          },
+          popular: true,
+        },
+        {
+          id: "ENTERPRISE",
+          name: "Enterprise",
+          price: 99,
+          interval: "month",
+          priceIds: {
+            monthly: PRICE_IDS.ENTERPRISE_MONTHLY,
+            yearly: PRICE_IDS.ENTERPRISE_YEARLY,
+          },
+          features: [
+            "Unlimited mastering",
+            "Priority queue",
+            "HD exports (24-bit)",
+            "API access",
+            "Dedicated support",
+          ],
+          limits: {
+            projects: -1,
+            tracksPerMonth: -1,
+            storageGb: 500,
+          },
+        },
+      ],
+    };
+  });
+
+  // Check if Stripe is configured for payment-related routes
   if (!stripe) {
-    app.get("/api/v1/billing/*", async (_request, reply) => {
+    // Register stub routes that return 503 for payment-related endpoints only
+    app.get("/api/v1/billing/subscription", { preHandler: [app.authenticate] }, async (_request, reply) => {
+      reply.code(503).send({
+        error: "Service Unavailable",
+        message: "Billing is not configured",
+      });
+    });
+    app.post("/api/v1/billing/checkout", { preHandler: [app.authenticate] }, async (_request, reply) => {
+      reply.code(503).send({
+        error: "Service Unavailable",
+        message: "Billing is not configured",
+      });
+    });
+    app.post("/api/v1/billing/portal", { preHandler: [app.authenticate] }, async (_request, reply) => {
+      reply.code(503).send({
+        error: "Service Unavailable",
+        message: "Billing is not configured",
+      });
+    });
+    app.get("/api/v1/billing/invoices", { preHandler: [app.authenticate] }, async (_request, reply) => {
       reply.code(503).send({
         error: "Service Unavailable",
         message: "Billing is not configured",
@@ -45,62 +135,6 @@ const billingRoutes: FastifyPluginAsync = async (app) => {
       };
     }
   );
-
-  /**
-   * Get available plans and pricing
-   */
-  app.get("/api/v1/billing/plans", async () => {
-    return {
-      plans: [
-        {
-          id: "FREE",
-          name: "Free",
-          price: { monthly: 0, yearly: 0 },
-          features: [
-            "3 projects",
-            "10 tracks/month",
-            "1 GB storage",
-            "Standard queue",
-          ],
-        },
-        {
-          id: "PRO",
-          name: "Pro",
-          price: { monthly: 19, yearly: 190 },
-          priceIds: {
-            monthly: PRICE_IDS.PRO_MONTHLY,
-            yearly: PRICE_IDS.PRO_YEARLY,
-          },
-          features: [
-            "25 projects",
-            "100 tracks/month",
-            "50 GB storage",
-            "Priority queue",
-            "HD exports (24-bit)",
-          ],
-          popular: true,
-        },
-        {
-          id: "ENTERPRISE",
-          name: "Enterprise",
-          price: { monthly: 99, yearly: 990 },
-          priceIds: {
-            monthly: PRICE_IDS.ENTERPRISE_MONTHLY,
-            yearly: PRICE_IDS.ENTERPRISE_YEARLY,
-          },
-          features: [
-            "Unlimited projects",
-            "Unlimited tracks",
-            "500 GB storage",
-            "Priority queue",
-            "HD exports (24-bit)",
-            "API access",
-            "Dedicated support",
-          ],
-        },
-      ],
-    };
-  });
 
   /**
    * Create checkout session for subscription

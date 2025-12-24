@@ -274,8 +274,8 @@ export default function BillingPage() {
                     </ul>
                     <Separator className="my-4" />
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <p>{plan.limits.projects} projects</p>
-                      <p>{plan.limits.tracksPerMonth} tracks/month</p>
+                      <p>{plan.limits.projects === -1 ? "Unlimited" : plan.limits.projects} projects</p>
+                      <p>{plan.limits.tracksPerMonth === -1 ? "Unlimited" : plan.limits.tracksPerMonth} tracks/month</p>
                       <p>{plan.limits.storageGb} GB storage</p>
                     </div>
                   </CardContent>
