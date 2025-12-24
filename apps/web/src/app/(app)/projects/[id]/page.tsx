@@ -80,9 +80,12 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       toast.success("Track uploaded successfully");
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Upload failed:", error);
-      toast.error("Failed to upload track");
+      // Extract error message from API response
+      const apiError = error as { message?: string; error?: string };
+      const message = apiError.message || apiError.error || "Failed to upload track";
+      toast.error(message);
     },
   });
 

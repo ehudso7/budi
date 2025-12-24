@@ -183,15 +183,24 @@ export const tracksApi = {
     ),
   // Upload file directly to S3 using pre-signed URL
   uploadToS3: async (uploadUrl: string, file: File): Promise<void> => {
-    const response = await fetch(uploadUrl, {
-      method: "PUT",
-      body: file,
-      headers: {
-        "Content-Type": file.type || "audio/wav",
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`S3 upload failed: ${response.status}`);
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "audio/wav",
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(`Storage upload failed (${response.status}): ${errorText || response.statusText}`);
+      }
+    } catch (error) {
+      // Check for CORS errors (typically show as network errors)
+      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
+        throw new Error("Storage upload failed: CORS not configured. Please configure CORS on your S3/R2 bucket to allow uploads from your domain.");
+      }
+      throw error;
     }
   },
   // Complete upload flow: get URL, upload to S3, return track info

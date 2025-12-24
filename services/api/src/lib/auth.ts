@@ -69,6 +69,7 @@ export async function registerAuth(app: FastifyInstance): Promise<void> {
         request.userPlan = dbUser?.plan || "FREE";
       } catch {
         reply.status(401).send({ error: "Unauthorized", message: "Invalid or missing authentication" });
+        return;
       }
     }
   );

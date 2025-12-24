@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import prisma from "../lib/db.js";
 import { generateToken } from "../lib/auth.js";
 import { enqueueJob, QUEUES } from "../lib/redis.js";
-import { getUploadUrl, getDownloadUrl, BUCKETS, generateKey, getInternalUrl } from "../lib/s3.js";
+import { getUploadUrl, getDownloadUrl, BUCKETS, generateKey, getInternalUrl, isS3Configured } from "../lib/s3.js";
 import {
   createProjectSchema,
   updateProjectSchema,
@@ -433,6 +433,14 @@ const v1Routes: FastifyPluginAsync = async (app) => {
     "/v1/projects/:projectId/tracks/upload-url",
     { preHandler: [app.authenticate] },
     async (request, reply) => {
+      // Check if S3/MinIO is configured
+      if (!isS3Configured()) {
+        return reply.code(503).send({
+          error: "Storage not configured",
+          message: "File storage (S3/MinIO) is not configured. Please set MINIO_ENDPOINT, MINIO_ACCESS_KEY, and MINIO_SECRET_KEY environment variables.",
+        });
+      }
+
       const { projectId } = request.params;
       const { name, contentType = "audio/wav" } = request.body;
 
