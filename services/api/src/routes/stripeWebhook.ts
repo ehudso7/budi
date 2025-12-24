@@ -16,14 +16,17 @@ const stripeWebhookRoutes: FastifyPluginAsync = async (app) => {
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  // Register raw body parser for this route
-  app.addContentTypeParser(
-    "application/json",
-    { parseAs: "buffer" },
-    (_request, payload, done) => {
-      done(null, payload);
-    }
-  );
+  // Register raw body parser for this route (only if not already registered)
+  // This can happen in serverless environments where the app is reused
+  if (!app.hasContentTypeParser("application/json")) {
+    app.addContentTypeParser(
+      "application/json",
+      { parseAs: "buffer" },
+      (_request, payload, done) => {
+        done(null, payload);
+      }
+    );
+  }
 
   app.post<{ Body: Buffer }>("/api/v1/stripe/webhook", async (request, reply) => {
     if (!webhookSecret) {
