@@ -29,7 +29,6 @@ export default function TracksPage() {
   const filteredProjects = projects.filter((project) =>
     project.name.toLowerCase().includes(search.toLowerCase())
   );
-  const projectsWithTracks = filteredProjects.filter((p) => p.trackCount > 0);
 
   return (
     <div className="space-y-6">
@@ -52,7 +51,7 @@ export default function TracksPage() {
         />
       </div>
 
-      {/* Projects with Tracks */}
+      {/* Projects List - Select a project to manage tracks */}
       {isLoading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
@@ -67,9 +66,9 @@ export default function TracksPage() {
             </Card>
           ))}
         </div>
-      ) : projectsWithTracks.length > 0 ? (
+      ) : filteredProjects.length > 0 ? (
         <div className="space-y-4">
-          {projectsWithTracks.map((project) => (
+          {filteredProjects.map((project) => (
             <Card key={project.id}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -79,14 +78,14 @@ export default function TracksPage() {
                   <div>
                     <CardTitle>{project.name}</CardTitle>
                     <CardDescription>
-                      {project.trackCount} tracks - Updated{" "}
+                      {project.trackCount} {project.trackCount === 1 ? "track" : "tracks"} - Updated{" "}
                       {formatDate(project.updatedAt)}
                     </CardDescription>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="default" size="sm" asChild>
                   <Link href={`/projects/${project.id}`}>
-                    View Project
+                    {project.trackCount === 0 ? "Upload Tracks" : "View Tracks"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -98,14 +97,16 @@ export default function TracksPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Music className="mb-4 h-16 w-16 text-muted-foreground/50" />
-            <h3 className="mb-2 text-lg font-semibold">No tracks found</h3>
+            <h3 className="mb-2 text-lg font-semibold">
+              {search ? "No projects found" : "No projects yet"}
+            </h3>
             <p className="mb-6 text-center text-muted-foreground">
               {search
-                ? "No projects with tracks match your search."
-                : "Upload tracks to your projects to see them here."}
+                ? "No projects match your search."
+                : "Create a project to start uploading tracks."}
             </p>
             <Button asChild>
-              <Link href="/projects">Go to Projects</Link>
+              <Link href="/projects/new">Create Project</Link>
             </Button>
           </CardContent>
         </Card>

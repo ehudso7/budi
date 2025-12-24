@@ -239,6 +239,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
           status: p.status.toLowerCase(),
           trackCount: p.tracks.length,
           createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
         })),
       });
     }
