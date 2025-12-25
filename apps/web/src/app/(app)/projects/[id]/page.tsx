@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDropzone } from "react-dropzone";
@@ -15,6 +15,7 @@ import {
   Wand2,
   Download,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,78 @@ export default function ProjectDetailPage() {
   const [processTrack, setProcessTrack] = useState<Track | null>(null);
   const [deleteTrack, setDeleteTrack] = useState<Track | null>(null);
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
+  const [loadingTrack, setLoadingTrack] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle play/pause for a track
+  const handlePlayPause = async (track: Track) => {
+    // If clicking the same track that's playing, pause it
+    if (playingTrack === track.id) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setPlayingTrack(null);
+      return;
+    }
+
+    // Stop current playing track if any
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPlayingTrack(null);
+
+    // Start loading new track
+    setLoadingTrack(track.id);
+
+    try {
+      // Get streaming URL from API
+      const { streamUrl } = await tracksApi.getStreamUrl(track.id);
+
+      // Create new audio element
+      const audio = new Audio(streamUrl);
+      audioRef.current = audio;
+
+      // Handle when audio ends
+      audio.onended = () => {
+        setPlayingTrack(null);
+      };
+
+      // Handle errors
+      audio.onerror = () => {
+        toast.error("Failed to play audio");
+        setPlayingTrack(null);
+        setLoadingTrack(null);
+      };
+
+      // Handle when audio is ready to play
+      audio.oncanplay = () => {
+        setLoadingTrack(null);
+        setPlayingTrack(track.id);
+        audio.play().catch(() => {
+          toast.error("Failed to play audio");
+          setPlayingTrack(null);
+        });
+      };
+
+      // Start loading
+      audio.load();
+    } catch (error) {
+      console.error("Failed to get stream URL:", error);
+      toast.error("Failed to load audio");
+      setLoadingTrack(null);
+    }
+  };
 
   const { data: projectData, isLoading: projectLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -244,14 +317,12 @@ export default function ProjectDetailPage() {
                     variant="ghost"
                     size="icon"
                     className="shrink-0"
-                    disabled={track.status !== "ready"}
-                    onClick={() =>
-                      setPlayingTrack(
-                        playingTrack === track.id ? null : track.id
-                      )
-                    }
+                    disabled={loadingTrack === track.id}
+                    onClick={() => handlePlayPause(track)}
                   >
-                    {playingTrack === track.id ? (
+                    {loadingTrack === track.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : playingTrack === track.id ? (
                       <Pause className="h-4 w-4" />
                     ) : (
                       <Play className="h-4 w-4" />

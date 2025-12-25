@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import prisma from "../lib/db.js";
 import { generateToken } from "../lib/auth.js";
 import { enqueueJob, QUEUES } from "../lib/redis.js";
-import { getUploadUrl, getDownloadUrl, BUCKETS, generateKey, getInternalUrl, isS3Configured } from "../lib/s3.js";
+import { getUploadUrl, getDownloadUrl, BUCKETS, generateKey, getInternalUrl, isS3Configured, objectExists } from "../lib/s3.js";
 import {
   createProjectSchema,
   updateProjectSchema,
@@ -395,21 +395,30 @@ const v1Routes: FastifyPluginAsync = async (app) => {
         orderBy: { orderIndex: "asc" },
       });
 
+      // Helper to detect format from filename
+      const detectFormat = (name: string): string | null => {
+        const ext = name.split('.').pop()?.toLowerCase();
+        if (ext && ['wav', 'mp3', 'flac', 'aac', 'ogg', 'm4a'].includes(ext)) {
+          return ext;
+        }
+        return null;
+      };
+
       reply.send({
         tracks: tracks.map((t: (typeof tracks)[number]) => ({
           id: t.id,
           name: t.name,
           originalFileName: t.name,
-          fileSize: null, // Not tracked in current schema
+          fileSize: null, // Will be set after upload confirmation in future
           duration: t.analysisReport?.durationSecs ?? null,
           sampleRate: t.analysisReport?.sampleRate ?? null,
           bitDepth: t.analysisReport?.bitDepth ?? null,
           channels: t.analysisReport?.channels ?? null,
-          format: null, // Format detection not implemented
+          format: detectFormat(t.name), // Detect from filename extension
           waveformUrl: null,
           status: (() => {
             const s = t.status.toLowerCase();
-            if (s === "analyzed" || s === "mastered") return "ready";
+            if (s === "analyzed" || s === "mastered" || s === "fixed") return "ready";
             if (s === "uploaded") return "pending";
             if (s === "analyzing") return "analyzing";
             if (s === "fixing" || s === "mastering") return "processing";
@@ -546,12 +555,34 @@ const v1Routes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ error: "Track not found" });
       }
 
-      // Delete track (cascades to analysis reports, masters, jobs, etc.)
-      await prisma.track.delete({
-        where: { id: trackId },
-      });
+      try {
+        // Delete track (cascades to analysis reports, masters, jobs, etc.)
+        await prisma.track.delete({
+          where: { id: trackId },
+        });
 
-      reply.code(204).send();
+        // Try to delete the file from S3 (non-blocking)
+        if (track.originalUrl) {
+          try {
+            const url = new URL(track.originalUrl);
+            const pathParts = url.pathname.slice(1).split('/');
+            if (pathParts.length >= 2) {
+              const bucket = pathParts[0];
+              const key = pathParts.slice(1).join('/');
+              const { deleteObject } = await import("../lib/s3.js");
+              await deleteObject(bucket, key);
+            }
+          } catch (s3Error) {
+            // Log but don't fail the request
+            app.log.warn({ s3Error, trackId }, "Failed to delete S3 object");
+          }
+        }
+
+        reply.code(204).send();
+      } catch (error) {
+        app.log.error({ error, trackId }, "Failed to delete track");
+        return reply.code(500).send({ error: "Failed to delete track" });
+      }
     }
   );
 
@@ -628,6 +659,132 @@ const v1Routes: FastifyPluginAsync = async (app) => {
   );
 
   // ============================================================================
+  // Track Streaming & Upload Confirmation Routes
+  // ============================================================================
+
+  /** Get a streaming URL for the original uploaded file */
+  app.get<{ Params: { trackId: string } }>(
+    "/v1/tracks/:trackId/stream",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { trackId } = request.params;
+
+      const track = await prisma.track.findFirst({
+        where: {
+          id: trackId,
+          project: { userId: request.userId },
+        },
+      });
+
+      if (!track) {
+        return reply.code(404).send({ error: "Track not found" });
+      }
+
+      if (!track.originalUrl) {
+        return reply.code(404).send({ error: "Track file not found" });
+      }
+
+      try {
+        // Parse the internal URL to extract bucket and key
+        const url = new URL(track.originalUrl);
+        const pathParts = url.pathname.slice(1).split('/');
+        if (pathParts.length < 2) {
+          return reply.code(500).send({ error: "Invalid file URL format" });
+        }
+
+        const bucket = pathParts[0];
+        const key = pathParts.slice(1).join('/');
+
+        // Generate a presigned download URL
+        const streamUrl = await getDownloadUrl(bucket, key, 3600);
+
+        reply.send({
+          streamUrl,
+          expiresIn: 3600,
+          trackId,
+          fileName: track.name,
+        });
+      } catch (error) {
+        app.log.error({ error, trackId }, "Failed to generate stream URL");
+        return reply.code(500).send({ error: "Failed to generate stream URL" });
+      }
+    }
+  );
+
+  /** Confirm upload completion and save file metadata */
+  app.post<{ Params: { trackId: string }; Body: { fileSize?: number; contentType?: string } }>(
+    "/v1/tracks/:trackId/confirm-upload",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { trackId } = request.params;
+      const { fileSize, contentType } = request.body || {};
+
+      const track = await prisma.track.findFirst({
+        where: {
+          id: trackId,
+          project: { userId: request.userId },
+        },
+      });
+
+      if (!track) {
+        return reply.code(404).send({ error: "Track not found" });
+      }
+
+      // Detect format from content type or filename
+      let format: string | null = null;
+      if (contentType) {
+        const formatMap: Record<string, string> = {
+          "audio/wav": "wav",
+          "audio/x-wav": "wav",
+          "audio/wave": "wav",
+          "audio/mp3": "mp3",
+          "audio/mpeg": "mp3",
+          "audio/flac": "flac",
+          "audio/x-flac": "flac",
+          "audio/aac": "aac",
+          "audio/mp4": "aac",
+          "audio/ogg": "ogg",
+          "audio/x-m4a": "m4a",
+          "audio/m4a": "m4a",
+        };
+        format = formatMap[contentType.toLowerCase()] || null;
+      }
+
+      // Fallback to extension from filename
+      if (!format && track.name) {
+        const ext = track.name.split('.').pop()?.toLowerCase();
+        if (ext && ['wav', 'mp3', 'flac', 'aac', 'ogg', 'm4a'].includes(ext)) {
+          format = ext;
+        }
+      }
+
+      // Optionally verify file exists in S3
+      let verified = false;
+      if (track.originalUrl) {
+        try {
+          const url = new URL(track.originalUrl);
+          const pathParts = url.pathname.slice(1).split('/');
+          if (pathParts.length >= 2) {
+            const bucket = pathParts[0];
+            const key = pathParts.slice(1).join('/');
+            verified = await objectExists(bucket, key);
+          }
+        } catch {
+          // Ignore verification errors
+        }
+      }
+
+      reply.send({
+        trackId,
+        verified,
+        format,
+        fileSize: fileSize || null,
+        status: track.status.toLowerCase(),
+      });
+    }
+  );
+
+  // ============================================================================
   // Analysis Routes
   // ============================================================================
 
@@ -648,39 +805,71 @@ const v1Routes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ error: "Track not found" });
       }
 
-      const jobId = generateId("job_");
+      if (!track.originalUrl) {
+        return reply.code(400).send({ error: "Track has no uploaded file" });
+      }
 
-      // Create job record
-      await prisma.job.create({
-        data: {
-          id: jobId,
+      // Check if track is already being analyzed
+      if (track.status === "ANALYZING") {
+        return reply.code(409).send({ error: "Track is already being analyzed" });
+      }
+
+      // Verify the file exists in S3
+      try {
+        const url = new URL(track.originalUrl);
+        const pathParts = url.pathname.slice(1).split('/');
+        if (pathParts.length >= 2) {
+          const bucket = pathParts[0];
+          const key = pathParts.slice(1).join('/');
+          const exists = await objectExists(bucket, key);
+          if (!exists) {
+            return reply.code(400).send({
+              error: "Track file not found in storage. Please re-upload the file."
+            });
+          }
+        }
+      } catch (error) {
+        app.log.warn({ error, trackId }, "Could not verify file existence, proceeding anyway");
+      }
+
+      try {
+        const jobId = generateId("job_");
+
+        // Create job record
+        await prisma.job.create({
+          data: {
+            id: jobId,
+            trackId,
+            type: "ANALYZE",
+            status: "QUEUED",
+            payload: { trackId, sourceUrl: track.originalUrl },
+          },
+        });
+
+        // Update track status
+        await prisma.track.update({
+          where: { id: trackId },
+          data: { status: "ANALYZING" },
+        });
+
+        // Enqueue job
+        const job: AnalyzeJob = {
+          type: "analyze",
+          jobId,
           trackId,
-          type: "ANALYZE",
-          status: "QUEUED",
-          payload: { trackId, sourceUrl: track.originalUrl },
-        },
-      });
+          sourceUrl: track.originalUrl,
+        };
+        await enqueueJob(QUEUES.DSP_JOBS, job);
 
-      // Update track status
-      await prisma.track.update({
-        where: { id: trackId },
-        data: { status: "ANALYZING" },
-      });
-
-      // Enqueue job
-      const job: AnalyzeJob = {
-        type: "analyze",
-        jobId,
-        trackId,
-        sourceUrl: track.originalUrl,
-      };
-      await enqueueJob(QUEUES.DSP_JOBS, job);
-
-      reply.code(202).send({
-        jobId,
-        trackId,
-        status: "queued",
-      });
+        reply.code(202).send({
+          jobId,
+          trackId,
+          status: "queued",
+        });
+      } catch (error) {
+        app.log.error({ error, trackId }, "Failed to enqueue analysis job");
+        return reply.code(500).send({ error: "Failed to start analysis. Please try again." });
+      }
     }
   );
 

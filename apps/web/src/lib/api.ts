@@ -203,7 +203,18 @@ export const tracksApi = {
       throw error;
     }
   },
-  // Complete upload flow: get URL, upload to S3, return track info
+  // Confirm upload completion and get file metadata
+  confirmUpload: (trackId: string, fileSize: number, contentType: string) =>
+    api.post<{ trackId: string; verified: boolean; format: string | null; fileSize: number | null; status: string }>(
+      `/api/v1/tracks/${trackId}/confirm-upload`,
+      { fileSize, contentType }
+    ),
+  // Get streaming URL for original uploaded file
+  getStreamUrl: (trackId: string) =>
+    api.get<{ streamUrl: string; expiresIn: number; trackId: string; fileName: string }>(
+      `/api/v1/tracks/${trackId}/stream`
+    ),
+  // Complete upload flow: get URL, upload to S3, confirm, return track info
   upload: async (projectId: string, file: File): Promise<{ trackId: string }> => {
     // Step 1: Get pre-signed upload URL
     const { trackId, uploadUrl } = await tracksApi.getUploadUrl(
@@ -213,6 +224,13 @@ export const tracksApi = {
     );
     // Step 2: Upload file directly to S3
     await tracksApi.uploadToS3(uploadUrl, file);
+    // Step 3: Confirm upload and capture metadata
+    try {
+      await tracksApi.confirmUpload(trackId, file.size, file.type || "audio/wav");
+    } catch {
+      // Non-critical, don't fail the upload
+      console.warn("Failed to confirm upload, continuing anyway");
+    }
     // Return the track ID (track record already created by getUploadUrl)
     return { trackId };
   },
